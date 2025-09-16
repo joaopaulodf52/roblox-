@@ -1,0 +1,18 @@
+{
+  "$className": "Model",
+  "Name": "CrystalCavern",
+  "Floor": {
+    "$className": "Part",
+    "Name": "Floor",
+    "Anchored": true,
+    "Size": [96, 1, 96],
+    "Position": [0, -8, 0]
+  },
+  "CrystalCluster": {
+    "$className": "Part",
+    "Name": "CrystalCluster",
+    "Anchored": true,
+    "Size": [8, 14, 8],
+    "Position": [-20, -1, 18]
+  }
+}

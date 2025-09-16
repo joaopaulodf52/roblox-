@@ -3,6 +3,25 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage:WaitForChild("GameConfig"))
+local MapConfig = require(ReplicatedStorage:WaitForChild("MapConfig"))
+
+local function resolveDefaultMapId()
+    local candidate = MapConfig.defaultMap
+    if typeof(candidate) == "string" and MapConfig[candidate] then
+        return candidate
+    end
+
+    for key, value in pairs(MapConfig) do
+        if type(value) == "table" and value.assetName then
+            return key
+        end
+    end
+
+    return nil
+end
+
+local DEFAULT_MAP_ID = resolveDefaultMapId()
+assert(DEFAULT_MAP_ID, "MapConfig deve definir ao menos um mapa válido")
 
 local PlayerProfileStore = {}
 
@@ -41,6 +60,14 @@ local function cloneDefaults()
     return defaults
 end
 
+local function ensureCurrentMap(mapId)
+    if typeof(mapId) ~= "string" or not MapConfig[mapId] then
+        return DEFAULT_MAP_ID
+    end
+
+    return mapId
+end
+
 local function ensureInventory(inventory)
     inventory = inventory or {}
     inventory.items = inventory.items or {}
@@ -61,6 +88,7 @@ local function ensureProfileStructure(profile)
     profile.stats = profile.stats or cloneDefaults()
     profile.inventory = ensureInventory(profile.inventory)
     profile.quests = ensureQuests(profile.quests)
+    profile.currentMap = ensureCurrentMap(profile.currentMap)
     return profile
 end
 
