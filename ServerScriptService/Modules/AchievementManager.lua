@@ -10,8 +10,20 @@ AchievementManager.__index = AchievementManager
 
 local leaderboardConfig = AchievementConfig.leaderboard or {}
 local LEADERBOARD_STORE_NAME = leaderboardConfig.storeName or "RPG_ACHIEVEMENTS_LEADERBOARD"
+local LEADERBOARD_MAX_ENTRIES = math.max(1, math.min(math.floor(leaderboardConfig.maxEntries or 50), 100))
+local LEADERBOARD_CACHE_SECONDS = math.max(1, math.floor(leaderboardConfig.cacheSeconds or 15))
 
 local dataStoreService = DataStoreService
+
+local timeProvider = os.clock
+
+local leaderboardCache = {
+    entries = nil,
+    limit = 0,
+    expiresAt = 0,
+}
+
+local leaderboardEntryCache = {}
 
 local definitionsSource = AchievementConfig.definitions or AchievementConfig
 
@@ -125,12 +137,119 @@ local function ensureQuestStructure(container)
     return container
 end
 
+local function now()
+    local provider = timeProvider
+    if provider then
+        return provider()
+    end
+    return os.clock()
+end
+
+local function clearLeaderboardCaches()
+    leaderboardCache.entries = nil
+    leaderboardCache.limit = 0
+    leaderboardCache.expiresAt = 0
+    table.clear(leaderboardEntryCache)
+end
+
+local function sanitizeLimit(limit)
+    local numeric = tonumber(limit)
+    if not numeric then
+        return LEADERBOARD_MAX_ENTRIES
+    end
+
+    numeric = math.floor(numeric)
+    if numeric < 1 then
+        numeric = 1
+    elseif numeric > LEADERBOARD_MAX_ENTRIES then
+        numeric = LEADERBOARD_MAX_ENTRIES
+    end
+
+    return numeric
+end
+
+local function copyLeaderboardEntries(source, limit)
+    local results = {}
+    if not source then
+        return results
+    end
+
+    local maxIndex = math.min(limit or #source, #source)
+    for index = 1, maxIndex do
+        local entry = source[index]
+        if entry then
+            results[index] = {
+                userId = entry.userId,
+                total = entry.total,
+            }
+        end
+    end
+
+    return results
+end
+
+local function readLeaderboardFromStore(fetchLimit)
+    local store = dataStoreService:GetOrderedDataStore(LEADERBOARD_STORE_NAME)
+    local pages = store:GetSortedAsync(false, fetchLimit)
+    local page = pages:GetCurrentPage()
+
+    local entries = {}
+    for _, item in ipairs(page) do
+        local key = item.key
+        local value = item.value
+        local userId = tonumber(key)
+        if userId and userId > 0 then
+            table.insert(entries, {
+                userId = userId,
+                total = tonumber(value) or 0,
+            })
+        end
+    end
+
+    return entries
+end
+
+local function cachePersonalValue(userId, value)
+    if type(userId) ~= "number" or userId <= 0 then
+        return
+    end
+
+    leaderboardEntryCache[userId] = {
+        value = value,
+        expiresAt = now() + LEADERBOARD_CACHE_SECONDS,
+    }
+end
+
+local function invalidateLeaderboardCache()
+    leaderboardCache.entries = nil
+    leaderboardCache.limit = 0
+    leaderboardCache.expiresAt = 0
+end
+
 function AchievementManager._setDataStoreService(service)
     dataStoreService = service or dataStoreService
+    clearLeaderboardCaches()
 end
 
 function AchievementManager._resetDataStoreService()
     dataStoreService = game:GetService("DataStoreService")
+    clearLeaderboardCaches()
+end
+
+function AchievementManager._setTimeProvider(provider)
+    if type(provider) == "function" then
+        timeProvider = provider
+    else
+        timeProvider = os.clock
+    end
+end
+
+function AchievementManager._resetTimeProvider()
+    timeProvider = os.clock
+end
+
+function AchievementManager._clearLeaderboardCache()
+    clearLeaderboardCaches()
 end
 
 local function countEntries(dictionary)
@@ -219,17 +338,22 @@ function AchievementManager:_updateLeaderboard()
         return
     end
 
+    local unlockedCount = self:_getUnlockedCount()
     local success, err = pcall(function()
         local store = dataStoreService:GetOrderedDataStore(LEADERBOARD_STORE_NAME)
         local key = tostring(userId)
         store:UpdateAsync(key, function()
-            return self:_getUnlockedCount()
+            return unlockedCount
         end)
     end)
 
     if not success then
         warn(string.format("Falha ao atualizar leaderboard de conquistas para %s: %s", player.Name, tostring(err)))
+        return
     end
+
+    cachePersonalValue(userId, unlockedCount)
+    invalidateLeaderboardCache()
 end
 
 function AchievementManager:_suppressExperienceTracking()
@@ -474,6 +598,56 @@ function AchievementManager:Destroy()
     self.questManager = nil
 
     self:_save()
+end
+
+function AchievementManager.GetLeaderboardEntriesAsync(limit)
+    local sanitizedLimit = sanitizeLimit(limit)
+    local cached = leaderboardCache
+
+    if cached.entries and now() < cached.expiresAt and cached.limit >= sanitizedLimit then
+        return copyLeaderboardEntries(cached.entries, sanitizedLimit)
+    end
+
+    local fetchLimit = math.max(sanitizedLimit, LEADERBOARD_MAX_ENTRIES)
+    local success, result = pcall(function()
+        return readLeaderboardFromStore(fetchLimit)
+    end)
+
+    if not success then
+        return nil, result
+    end
+
+    cached.entries = result
+    cached.limit = fetchLimit
+    cached.expiresAt = now() + LEADERBOARD_CACHE_SECONDS
+
+    return copyLeaderboardEntries(result, sanitizedLimit)
+end
+
+function AchievementManager.GetLeaderboardValueAsync(userId)
+    local numericId = tonumber(userId)
+    if not numericId or numericId <= 0 then
+        return nil, "invalidUserId"
+    end
+
+    local cached = leaderboardEntryCache[numericId]
+    if cached and now() < cached.expiresAt then
+        return cached.value
+    end
+
+    local success, valueOrErr = pcall(function()
+        local store = dataStoreService:GetOrderedDataStore(LEADERBOARD_STORE_NAME)
+        return store:GetAsync(tostring(numericId))
+    end)
+
+    if not success then
+        return nil, valueOrErr
+    end
+
+    local numericValue = tonumber(valueOrErr) or 0
+    cachePersonalValue(numericId, numericValue)
+
+    return numericValue
 end
 
 return AchievementManager

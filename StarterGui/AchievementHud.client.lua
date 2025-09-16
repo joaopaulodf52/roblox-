@@ -7,7 +7,7 @@ local AchievementHudController = require(script.Parent:WaitForChild("Achievement
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local controller = AchievementHudController.new(Remotes.AchievementUpdated, playerGui)
+local controller = AchievementHudController.new(Remotes.AchievementUpdated, Remotes.AchievementLeaderboardRequest, playerGui)
 
 script.Destroying:Connect(function()
     controller:Destroy()
