@@ -9,6 +9,7 @@ local Inventory = require(script.Modules.Inventory)
 local QuestManager = require(script.Modules.QuestManager)
 local Combat = require(script.Modules.Combat)
 local Skills = require(script.Modules.Skills)
+local Crafting = require(script.Modules.Crafting)
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
 local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
@@ -36,10 +37,12 @@ local RATE_LIMIT_WINDOW = 1
 local MAX_INVENTORY_REQUESTS_PER_WINDOW = 8
 local MAX_COMBAT_REQUESTS_PER_WINDOW = 12
 local MAX_SKILL_REQUESTS_PER_WINDOW = 15
+local MAX_CRAFTING_REQUESTS_PER_WINDOW = 6
 
 local inventoryRequestCounters = {}
 local combatRequestCounters = {}
 local skillRequestCounters = {}
+local craftingRequestCounters = {}
 
 local function logInvalidRequest(player, requestType, reason)
     local playerName = player and player.Name or "Desconhecido"
@@ -55,6 +58,7 @@ local function clearRateLimitState(player)
     inventoryRequestCounters[userId] = nil
     combatRequestCounters[userId] = nil
     skillRequestCounters[userId] = nil
+    craftingRequestCounters[userId] = nil
 end
 
 local function isRateLimited(counter, player, maxRequests)
@@ -179,6 +183,38 @@ local function validateCombatRequest(player, targetPlayer, weaponId)
     return true, targetPlayer, sanitizedWeaponId
 end
 
+local function validateCraftingRequest(payload)
+    if type(payload) == "string" then
+        payload = {
+            recipeId = payload,
+        }
+    end
+
+    if type(payload) ~= "table" then
+        return false, nil, "payload inválido"
+    end
+
+    local recipeId = payload.recipeId or payload.id
+    if not isValidString(recipeId) then
+        return false, nil, "recipeId inválido"
+    end
+
+    local recipes = ItemsConfig.recipes or {}
+    if not recipes[recipeId] then
+        return false, nil, "receita desconhecida"
+    end
+
+    local quantity = payload.quantity
+    if quantity ~= nil and type(quantity) ~= "number" then
+        return false, nil, "quantidade inválida"
+    end
+
+    return true, {
+        recipeId = recipeId,
+        quantity = quantity,
+    }
+end
+
 local function createPlayerControllers(player)
     local stats = CharacterStats.new(player)
     local inventory = Inventory.new(player, stats)
@@ -186,6 +222,7 @@ local function createPlayerControllers(player)
     inventory:BindQuestManager(quests)
     local combat = Combat.new(player, stats, inventory, quests)
     local skills = Skills.new(player, stats)
+    local crafting = Crafting.new(player, inventory)
 
     controllers[player] = {
         stats = stats,
@@ -193,6 +230,7 @@ local function createPlayerControllers(player)
         quests = quests,
         combat = combat,
         skills = skills,
+        crafting = crafting,
     }
 end
 
@@ -207,6 +245,9 @@ local function removePlayerControllers(player)
     controller.inventory:Destroy()
     controller.quests:Destroy()
     controller.combat:Destroy()
+    if controller.crafting then
+        controller.crafting:Destroy()
+    end
     if controller.skills then
         controller.skills:Destroy()
     end
@@ -267,6 +308,38 @@ Remotes.InventoryRequest.OnServerEvent:Connect(function(player, request)
         controller.inventory:UseConsumable(sanitized.itemId)
     elseif action == "acceptQuest" then
         controller.quests:AcceptQuest(sanitized.questId)
+    end
+end)
+
+Remotes.CraftingRequest.OnServerEvent:Connect(function(player, payload)
+    local controller = controllers[player]
+    if not controller or not controller.crafting then
+        return
+    end
+
+    if isRateLimited(craftingRequestCounters, player, MAX_CRAFTING_REQUESTS_PER_WINDOW) then
+        logInvalidRequest(player, "CraftingRequest", "limite de requisições excedido")
+        return
+    end
+
+    local isValid, sanitized, reason = validateCraftingRequest(payload)
+    if not isValid then
+        logInvalidRequest(player, "CraftingRequest", reason or "dados inválidos")
+        return
+    end
+
+    local success, message = controller.crafting:Craft(sanitized.recipeId, sanitized.quantity)
+    if not success then
+        local shouldLog = true
+        if type(message) == "string" then
+            if message == "Inventário cheio" or string.find(message, "Ingrediente insuficiente", 1, true) then
+                shouldLog = false
+            end
+        end
+
+        if shouldLog then
+            logInvalidRequest(player, "CraftingRequest", message or "falha ao criar item")
+        end
     end
 end)
 

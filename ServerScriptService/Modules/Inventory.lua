@@ -169,6 +169,111 @@ function Inventory:HasItem(itemId, quantity)
     return entry ~= nil and entry.quantity >= quantity
 end
 
+local function normalizeIngredientsTable(ingredients)
+    local normalized = {}
+    for key, value in pairs(ingredients) do
+        local itemId = key
+        local amount = value
+
+        if type(key) == "number" and type(value) == "table" then
+            itemId = value.itemId or value.id
+            amount = value.quantity or value.amount or value.count or 1
+        end
+
+        if type(itemId) ~= "string" or itemId == "" then
+            return nil, "Receita inválida"
+        end
+
+        if not ItemsConfig[itemId] then
+            return nil, string.format("Ingrediente desconhecido: %s", tostring(itemId))
+        end
+
+        local sanitized = sanitizeQuantity(amount, 1)
+        if not sanitized then
+            return nil, string.format("Quantidade inválida para %s", tostring(itemId))
+        end
+
+        normalized[itemId] = (normalized[itemId] or 0) + sanitized
+    end
+
+    if next(normalized) == nil then
+        return nil, "Receita inválida"
+    end
+
+    return normalized
+end
+
+function Inventory:CraftItem(resultItemId, ingredients, crafts, outputPerCraft)
+    if not ItemsConfig[resultItemId] then
+        return false, string.format("Item %s não está definido", tostring(resultItemId))
+    end
+
+    local sanitizedCrafts = sanitizeQuantity(crafts, 1)
+    if not sanitizedCrafts then
+        return false, "Quantidade inválida"
+    end
+
+    local sanitizedOutput = sanitizeQuantity(outputPerCraft, 1)
+    if not sanitizedOutput then
+        return false, "Quantidade inválida"
+    end
+
+    if type(ingredients) ~= "table" then
+        return false, "Receita inválida"
+    end
+
+    local normalized, normalizeError = normalizeIngredientsTable(ingredients)
+    if not normalized then
+        return false, normalizeError or "Receita inválida"
+    end
+
+    local totalRemoved = 0
+    for itemId, baseQuantity in pairs(normalized) do
+        local requiredQuantity = baseQuantity * sanitizedCrafts
+        local entry = self.data.items[itemId]
+        if not entry or entry.quantity < requiredQuantity then
+            return false, string.format("Ingrediente insuficiente: %s", itemId)
+        end
+        normalized[itemId] = requiredQuantity
+        totalRemoved += requiredQuantity
+    end
+
+    local resultQuantity = sanitizedCrafts * sanitizedOutput
+    local finalLoad = self:_currentLoad() - totalRemoved + resultQuantity
+    if finalLoad > self.data.capacity then
+        return false, "Inventário cheio"
+    end
+
+    for itemId, requiredQuantity in pairs(normalized) do
+        local entry = self.data.items[itemId]
+        if entry then
+            entry.quantity = entry.quantity - requiredQuantity
+            if entry.quantity <= 0 then
+                self.data.items[itemId] = nil
+            end
+        end
+    end
+
+    local resultEntry = self.data.items[resultItemId]
+    if resultEntry then
+        resultEntry.quantity = resultEntry.quantity + resultQuantity
+    else
+        self.data.items[resultItemId] = {
+            id = resultItemId,
+            quantity = resultQuantity,
+        }
+    end
+
+    self:_save()
+    self:_pushUpdate()
+
+    if self.questManager then
+        self.questManager:RegisterCollection(resultItemId, resultQuantity)
+    end
+
+    return true
+end
+
 function Inventory:_applyAttributes(itemId, multiplier)
     local config = ItemsConfig[itemId]
     if not config or not config.attributes then

@@ -85,6 +85,12 @@ return function()
             expect(profileSchema.skills).to.be.ok()
             expect(profileSchema.skills.version).to.equal(1)
             expect(profileSchema.skills.fields).to.be.ok()
+
+            expect(profileSchema.crafting).to.be.ok()
+            expect(profileSchema.crafting.version).to.equal(1)
+            expect(profileSchema.crafting.fields).to.be.ok()
+            expect(profileSchema.crafting.statistics).to.be.ok()
+            expect(profileSchema.crafting.statistics.totalCrafted).to.equal(0)
         end)
 
         it("persists migration state between runs", function()

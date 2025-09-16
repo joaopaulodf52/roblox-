@@ -91,12 +91,26 @@ local function ensureSkills(skills)
     return skills
 end
 
+local function ensureCrafting(crafting)
+    crafting = crafting or {}
+    crafting.version = crafting.version or 1
+    crafting.unlocked = crafting.unlocked or {}
+
+    local statistics = crafting.statistics or {}
+    statistics.totalCrafted = statistics.totalCrafted or 0
+    statistics.byRecipe = statistics.byRecipe or {}
+    crafting.statistics = statistics
+
+    return crafting
+end
+
 local function ensureProfileStructure(profile)
     profile = profile or {}
     profile.stats = profile.stats or cloneDefaults()
     profile.inventory = ensureInventory(profile.inventory)
     profile.quests = ensureQuests(profile.quests)
     profile.skills = ensureSkills(profile.skills)
+    profile.crafting = ensureCrafting(profile.crafting)
     profile.currentMap = ensureCurrentMap(profile.currentMap)
     return profile
 end
