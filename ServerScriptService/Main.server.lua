@@ -11,12 +11,16 @@ local Combat = require(script.Modules.Combat)
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
 local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
+local MapConfig = require(ReplicatedStorage:WaitForChild("MapConfig"))
+local MapManager = require(script.Modules.MapManager)
 
 DataMigrations.Register()
 local migrationState = DataStoreManager:RunMigrations()
 print(string.format("Migrations executadas. Versão atual: %d", migrationState.version))
 
 local controllers = {}
+
+MapManager:EnsureLoaded(MapConfig.defaultMap)
 
 local RATE_LIMIT_WINDOW = 1
 local MAX_INVENTORY_REQUESTS_PER_WINDOW = 8
@@ -180,20 +184,40 @@ end
 local function removePlayerControllers(player)
     local controller = controllers[player]
     if not controller then
+        MapManager:UnbindPlayer(player)
         return
     end
 
     controller.stats:Destroy()
     controller.inventory:Destroy()
     controller.quests:Destroy()
+    controller.combat:Destroy()
     controllers[player] = nil
     PlayerProfileStore.Save(player)
     PlayerProfileStore.Clear(player)
     clearRateLimitState(player)
+    MapManager:UnbindPlayer(player)
 end
 
 Players.PlayerAdded:Connect(function(player)
-    PlayerProfileStore.Load(player)
+    local profile = PlayerProfileStore.Load(player)
+    local targetMapId = profile.currentMap or MapConfig.defaultMap
+
+    local success, err = pcall(function()
+        MapManager:SpawnPlayer(player, targetMapId)
+    end)
+
+    if not success then
+        warn(string.format("Falha ao posicionar jogador %s no mapa '%s': %s", player.Name, tostring(targetMapId), err))
+        MapManager:SpawnPlayer(player, MapConfig.defaultMap)
+        targetMapId = MapConfig.defaultMap
+    end
+
+    PlayerProfileStore.Update(player, function(data)
+        data.currentMap = targetMapId
+        return data
+    end)
+
     createPlayerControllers(player)
 end)
 

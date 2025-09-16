@@ -2,6 +2,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DataStoreManager = require(script.Parent.DataStoreManager)
 local GameConfig = require(ReplicatedStorage:WaitForChild("GameConfig"))
+local MapConfig = require(ReplicatedStorage:WaitForChild("MapConfig"))
+
+local function resolveDefaultMapId()
+    local candidate = MapConfig.defaultMap
+    if typeof(candidate) == "string" and MapConfig[candidate] then
+        return candidate
+    end
+
+    for key, value in pairs(MapConfig) do
+        if type(value) == "table" and value.assetName then
+            return key
+        end
+    end
+
+    return nil
+end
+
+local DEFAULT_MAP_ID = resolveDefaultMapId()
+assert(DEFAULT_MAP_ID, "MapConfig deve definir ao menos um mapa válido")
 
 local DataMigrations = {}
 local registered = false
@@ -67,6 +86,32 @@ local function registerMigrations()
                 "active",
                 "completed",
             }
+            schemas.profile = profile
+        end,
+    })
+
+    DataStoreManager:RegisterMigration({
+        id = "20240504_player_map_state",
+        order = 4,
+        dependencies = { "20240501_profile_schema_v1" },
+        run = function(state)
+            local schemas = ensureSchemaContainer(state)
+            local profile = schemas.profile or {}
+
+            local stats = profile.stats or {}
+            stats.defaults = stats.defaults or {}
+
+            if typeof(stats.defaults.currentMap) ~= "string" or not MapConfig[stats.defaults.currentMap] then
+                stats.defaults.currentMap = DEFAULT_MAP_ID
+            end
+
+            profile.stats = stats
+
+            local currentMap = profile.currentMap
+            if typeof(currentMap) ~= "string" or not MapConfig[currentMap] then
+                profile.currentMap = DEFAULT_MAP_ID
+            end
+
             schemas.profile = profile
         end,
     })
