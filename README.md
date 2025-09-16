@@ -34,9 +34,20 @@ Este repositório contém os scripts principais para um jogo estilo RPG no Roblo
 4. Sempre que houver alteração em dados persistentes, adicione uma nova migration.
 5. Teste as alterações localmente no Roblox Studio antes de publicar.
 
+## Testes automatizados
+
+- O pacote `TestEZ` está disponível em `ReplicatedStorage/TestEZ` e é utilizado para executar as suites localizadas em `tests/server`.
+- O script `tests/TestBootstrap.server.lua` pode ser colocado em `ServerScriptService` (via Rojo ou Roblox Studio) para rodar todos os testes.
+- Para execução via linha de comando com o `roblox-cli`, utilize um lugar exportado/sincronizado e rode:
+
+  ```sh
+  roblox-cli run --load-place <caminho/do/lugar.rbxlx> --script tests/TestBootstrap.server.lua
+  ```
+
+  (ajuste o caminho do lugar de acordo com o ambiente de desenvolvimento).
+
 ## Próximos passos sugeridos
 
-- Adicionar testes automatizados para módulos críticos.
 - Criar pipelines de build e publicação contínua.
 - Expandir o conjunto de itens, missões e habilidades.
 

@@ -8,6 +8,31 @@ local PlayerProfileStore = {}
 
 local PROFILE_DATASTORE = "RPG_PLAYER_PROFILES"
 local profileCache = {}
+local MAX_RETRY_ATTEMPTS = 5
+local RETRY_BASE_DELAY = 0.5
+
+local function backoffWait(attempt)
+    local delay = RETRY_BASE_DELAY * (2 ^ (attempt - 1))
+    delay += math.random() * 0.25
+    task.wait(delay)
+end
+
+local function retryWithBackoff(operation)
+    local lastError
+    for attempt = 1, MAX_RETRY_ATTEMPTS do
+        local success, result = pcall(operation)
+        if success then
+            return true, result
+        end
+
+        lastError = result
+        if attempt < MAX_RETRY_ATTEMPTS then
+            backoffWait(attempt)
+        end
+    end
+
+    return false, lastError
+end
 
 local function cloneDefaults()
     local defaults = table.clone(GameConfig.DefaultStats)
@@ -54,7 +79,7 @@ function PlayerProfileStore.Load(player)
     end
 
     local store = getStore()
-    local success, result = pcall(function()
+    local success, result = retryWithBackoff(function()
         return store:GetAsync(key)
     end)
 
@@ -72,7 +97,7 @@ function PlayerProfileStore.Update(player, transform)
     local key = getKey(player)
     local store = getStore()
 
-    local success, result = pcall(function()
+    local success, result = retryWithBackoff(function()
         return store:UpdateAsync(key, function(oldValue)
             oldValue = ensureProfileStructure(oldValue)
             local newValue = transform(oldValue)
@@ -84,7 +109,9 @@ function PlayerProfileStore.Update(player, transform)
 
     if not success then
         warn(string.format("Falha ao atualizar perfil de %s: %s", player.Name, result))
-        return profileCache[key]
+        local cached = profileCache[key] or ensureProfileStructure(nil)
+        profileCache[key] = cached
+        return cached
     end
 
     profileCache[key] = ensureProfileStructure(result)

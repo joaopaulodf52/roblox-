@@ -17,6 +17,26 @@ local function ensureTable(value)
     return typeof(value) == "table" and value or {}
 end
 
+local function deepCopy(value)
+    if typeof(value) ~= "table" then
+        return value
+    end
+
+    local copy = {}
+    for key, child in pairs(value) do
+        copy[key] = deepCopy(child)
+    end
+    return copy
+end
+
+local function ensureMigrationStateStructure(state)
+    state = ensureTable(state)
+    state.version = state.version or 0
+    state.applied = ensureTable(state.applied)
+    state.history = ensureTable(state.history)
+    return state
+end
+
 local function validateMigrationDefinition(migration)
     assert(type(migration) == "table", "Migration deve ser uma tabela")
     assert(type(migration.id) == "string" and migration.id ~= "", "Migration precisa de um id string")
@@ -60,25 +80,55 @@ local function loadMigrationState(migrationStore)
         error(string.format("Falha ao carregar estado das migrations: %s", result))
     end
 
-    result = result or {
-        version = 0,
-        applied = {},
-        history = {},
-    }
+    if not result then
+        return ensureMigrationStateStructure(nil)
+    end
 
-    result.applied = ensureTable(result.applied)
-    result.history = ensureTable(result.history)
-
-    return result
+    return ensureMigrationStateStructure(result)
 end
 
 local function saveMigrationState(migrationStore, state)
-    local success, err = pcall(function()
-        migrationStore:SetAsync(MIGRATION_STATE_KEY, state)
-    end)
-    if not success then
-        error(string.format("Não foi possível salvar estado das migrations: %s", err))
+    local attempts = 0
+    local lastError
+
+    while attempts < 5 do
+        attempts += 1
+
+        local success, result = pcall(function()
+            return migrationStore:UpdateAsync(MIGRATION_STATE_KEY, function(existing)
+                existing = ensureMigrationStateStructure(existing)
+                existing.version = state.version
+                existing.applied = deepCopy(state.applied)
+                existing.history = deepCopy(state.history)
+                return existing
+            end)
+        end)
+
+        if success then
+            return ensureMigrationStateStructure(result)
+        end
+
+        lastError = result
+        if attempts < 5 then
+            local backoff = 0.5 * (2 ^ (attempts - 1))
+            backoff += math.random() * 0.25
+            task.wait(backoff)
+        end
     end
+
+    error(string.format("Não foi possível salvar estado das migrations: %s", tostring(lastError)))
+end
+
+local function refreshState(target, source)
+    target.version = source.version
+    target.applied = source.applied
+    target.history = source.history
+    return target
+end
+
+local function updateStateFromPersistence(migrationStore, state)
+    local persisted = saveMigrationState(migrationStore, state)
+    return refreshState(state, persisted)
 end
 
 function DataStoreManager:RegisterMigration(migration)
@@ -123,7 +173,7 @@ local function applyMigration(migrationStore, state, migration)
         timestamp = os.time(),
     }
 
-    saveMigrationState(migrationStore, state)
+    return updateStateFromPersistence(migrationStore, state)
 end
 
 function DataStoreManager:RunMigrations()
@@ -137,7 +187,7 @@ function DataStoreManager:RunMigrations()
     for _, migrationId in ipairs(DataStoreManager._migrationOrder) do
         if not state.applied[migrationId] then
             local migration = DataStoreManager._migrations[migrationId]
-            applyMigration(migrationStore, state, migration)
+            state = applyMigration(migrationStore, state, migration)
         end
     end
 
