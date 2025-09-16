@@ -146,5 +146,27 @@ return function()
             inventoryController:Destroy()
             statsController:Destroy()
         end)
+
+        it("includes planned rewards in the quest summary", function()
+            local statsController, inventoryController, questController = createControllers()
+
+            statsController:SetClass("mago")
+            questController:AcceptQuest("primeira_caca")
+
+            local summary = questController:GetSummary()
+            local entry = summary.active.primeira_caca
+
+            expect(entry).to.be.ok()
+            expect(entry.plannedReward).to.be.ok()
+            expect(entry.plannedReward.experience).to.equal(QuestConfig.primeira_caca.reward.experience)
+            expect(entry.plannedReward.gold).to.equal(QuestConfig.primeira_caca.reward.gold)
+            expect(entry.plannedReward.items).to.be.ok()
+            expect(entry.plannedReward.items.potion_small).to.equal(QuestConfig.primeira_caca.reward.items.potion_small)
+            expect(entry.plannedReward.items.training_grimoire).to.equal(1)
+
+            questController:Destroy()
+            inventoryController:Destroy()
+            statsController:Destroy()
+        end)
     end)
 end

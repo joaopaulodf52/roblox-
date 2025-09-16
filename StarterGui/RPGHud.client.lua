@@ -3,7 +3,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
-local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -32,9 +31,6 @@ end
 
 local statsLabel = createLabel("StatsLabel", UDim2.new(0, 20, 0, 20))
 local inventoryLabel = createLabel("InventoryLabel", UDim2.new(0, 320, 0, 20))
-local questLabel = createLabel("QuestLabel", UDim2.new(0, 620, 0, 20))
-questLabel.Size = UDim2.new(0, 300, 0, 220)
-
 local combatLabel = createLabel("CombatLabel", UDim2.new(0, 20, 0, 220))
 combatLabel.Size = UDim2.new(0, 280, 0, 80)
 combatLabel.Text = "Último combate: aguardando..."
@@ -94,44 +90,6 @@ local function renderInventory(summary)
     inventoryLabel.Text = table.concat(lines, "\n")
 end
 
-local function renderQuests(summary)
-    if not summary then
-        return
-    end
-
-    local lines = {"Missões ativas:"}
-    local active = summary.active or {}
-    if next(active) == nil then
-        table.insert(lines, "  (nenhuma)")
-    else
-        for questId, data in pairs(active) do
-            local definition = QuestConfig[questId]
-            local questName = definition and definition.name or questId
-            local progress = string.format("%d/%d", data.progress or 0, data.goal or 0)
-            local description = definition and definition.description or ""
-            table.insert(lines, string.format("  %s (%s)", questName, progress))
-            if description ~= "" then
-                table.insert(lines, "    " .. description)
-            end
-        end
-    end
-
-    table.insert(lines, "\nMissões concluídas:")
-    local completed = summary.completed or {}
-    if next(completed) == nil then
-        table.insert(lines, "  (nenhuma)")
-    else
-        for questId, data in pairs(completed) do
-            local definition = QuestConfig[questId]
-            local questName = definition and definition.name or questId
-            local completionTime = data.completedAt and os.date("%H:%M", data.completedAt) or "--"
-            table.insert(lines, string.format("  %s (concluída às %s)", questName, completionTime))
-        end
-    end
-
-    questLabel.Text = table.concat(lines, "\n")
-end
-
 local function handleCombat(event)
     if not event then
         return
@@ -156,6 +114,5 @@ end
 
 Remotes.StatsUpdated.OnClientEvent:Connect(renderStats)
 Remotes.InventoryUpdated.OnClientEvent:Connect(renderInventory)
-Remotes.QuestUpdated.OnClientEvent:Connect(renderQuests)
 Remotes.CombatNotification.OnClientEvent:Connect(handleCombat)
 
