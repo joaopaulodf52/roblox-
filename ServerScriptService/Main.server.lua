@@ -43,6 +43,7 @@ local MAX_CRAFTING_REQUESTS_PER_WINDOW = 6
 local MAX_SHOP_OPEN_REQUESTS_PER_WINDOW = 6
 local MAX_SHOP_PURCHASE_REQUESTS_PER_WINDOW = 10
 local MAX_MAP_TRAVEL_REQUESTS_PER_WINDOW = 4
+local MAX_ACHIEVEMENT_LEADERBOARD_REQUESTS_PER_WINDOW = 4
 
 local inventoryRequestCounters = {}
 local combatRequestCounters = {}
@@ -51,6 +52,7 @@ local craftingRequestCounters = {}
 local shopOpenRequestCounters = {}
 local shopPurchaseRequestCounters = {}
 local mapTravelRequestCounters = {}
+local achievementLeaderboardRequestCounters = {}
 
 local function logInvalidRequest(player, requestType, reason)
     local playerName = player and player.Name or "Desconhecido"
@@ -70,6 +72,7 @@ local function clearRateLimitState(player)
     shopOpenRequestCounters[userId] = nil
     shopPurchaseRequestCounters[userId] = nil
     mapTravelRequestCounters[userId] = nil
+    achievementLeaderboardRequestCounters[userId] = nil
 end
 
 local function isRateLimited(counter, player, maxRequests)
@@ -543,6 +546,27 @@ end)
 
 Players.PlayerRemoving:Connect(removePlayerControllers)
 
+Remotes.AchievementLeaderboardRequest.OnServerInvoke = function(player, payload)
+    if typeof(player) ~= "Instance" or not player:IsA("Player") then
+        return {}
+    end
+
+    if isRateLimited(achievementLeaderboardRequestCounters, player, MAX_ACHIEVEMENT_LEADERBOARD_REQUESTS_PER_WINDOW) then
+        logInvalidRequest(player, "AchievementLeaderboardRequest", "limite de requisições excedido")
+        error("limite de requisições excedido")
+    end
+
+    local limit = resolveLeaderboardRequestLimit(payload)
+    local entries, err = AchievementManager.GetLeaderboardEntriesAsync(limit)
+    if not entries then
+        local message = string.format("Falha ao ler leaderboard de conquistas: %s", tostring(err))
+        warn(message)
+        error(message)
+    end
+
+    return enrichLeaderboardEntries(entries)
+end
+
 Remotes.MapTravelRequest.OnServerEvent:Connect(function(player, payload)
     handleMapTravelRequest(player, payload)
 end)
@@ -733,6 +757,86 @@ local function validateSkillRequest(payload)
     end
 
     return true, skillId
+end
+
+local function resolveLeaderboardRequestLimit(payload)
+    if type(payload) == "table" then
+        if payload.limit ~= nil then
+            return payload.limit
+        end
+        if payload.maxEntries ~= nil then
+            return payload.maxEntries
+        end
+    elseif type(payload) == "number" then
+        return payload
+    end
+
+    return nil
+end
+
+local function enrichLeaderboardEntries(entries)
+    local results = {}
+    if type(entries) ~= "table" then
+        return results
+    end
+
+    local userIds = {}
+    local indexByUserId = {}
+
+    for index, entry in ipairs(entries) do
+        local userId = tonumber(entry.userId)
+        local total = tonumber(entry.total) or 0
+        local clone = {
+            userId = userId,
+            total = total,
+        }
+
+        results[index] = clone
+
+        if userId and userId > 0 then
+            indexByUserId[userId] = index
+            table.insert(userIds, userId)
+
+            local onlinePlayer = Players:GetPlayerByUserId(userId)
+            if onlinePlayer then
+                clone.displayName = onlinePlayer.DisplayName or onlinePlayer.Name
+            end
+        end
+    end
+
+    local missing = {}
+    for _, userId in ipairs(userIds) do
+        local index = indexByUserId[userId]
+        if index and not results[index].displayName then
+            table.insert(missing, userId)
+        end
+    end
+
+    if #missing > 0 then
+        local success, userInfos = pcall(function()
+            return Players:GetUserInfosByUserIdsAsync(missing)
+        end)
+
+        if success and type(userInfos) == "table" then
+            for _, info in ipairs(userInfos) do
+                if info then
+                    local targetIndex = indexByUserId[info.Id]
+                    if targetIndex then
+                        local entry = results[targetIndex]
+                        if info.DisplayName and info.DisplayName ~= "" then
+                            entry.displayName = info.DisplayName
+                        elseif info.Username and info.Username ~= "" then
+                            entry.displayName = info.Username
+                        end
+                    end
+                end
+            end
+        else
+            warn(string.format("Falha ao buscar nomes do leaderboard: %s", tostring(userInfos)))
+        end
+    end
+
+    return results
 end
 
 Remotes.SkillRequest.OnServerEvent:Connect(function(player, payload)

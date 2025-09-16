@@ -71,6 +71,38 @@ local function toSortedArray(dictionary)
     return array
 end
 
+local function cloneLeaderboardEntries(entries)
+    local copy = {}
+    if type(entries) ~= "table" then
+        return copy
+    end
+
+    for index, entry in ipairs(entries) do
+        copy[index] = {
+            userId = entry.userId,
+            displayName = entry.displayName,
+            total = tonumber(entry.total) or 0,
+        }
+    end
+
+    return copy
+end
+
+local function formatLeaderboardEntryText(index, entry)
+    local total = math.max(tonumber(entry.total) or 0, 0)
+    local totalText = Localization.format("achievementsLeaderboardTotalFormat", total)
+    local displayName = entry.displayName
+    if type(displayName) ~= "string" or displayName == "" then
+        if entry.userId then
+            displayName = tostring(entry.userId)
+        else
+            displayName = Localization.get("achievementsLeaderboardUnknown")
+        end
+    end
+
+    return Localization.format("achievementsLeaderboardEntryFormat", index, displayName, totalText)
+end
+
 function AchievementHudView.new(playerGui)
     assert(playerGui, "AchievementHudView.new requires a PlayerGui instance")
 
@@ -110,8 +142,31 @@ function AchievementHudView.new(playerGui)
     titleLabel.LayoutOrder = 1
     titleLabel.Parent = panel
 
+    local leaderboardTitle = createTextLabel("LeaderboardTitle", Localization.get("achievementsLeaderboardTitle"), Enum.Font.GothamBold, 16, TITLE_COLOR)
+    leaderboardTitle.LayoutOrder = 2
+    leaderboardTitle.Parent = panel
+
+    local leaderboardContainer = Instance.new("Frame")
+    leaderboardContainer.Name = "LeaderboardContainer"
+    leaderboardContainer.BackgroundTransparency = 1
+    leaderboardContainer.Size = UDim2.new(1, 0, 0, 0)
+    leaderboardContainer.AutomaticSize = Enum.AutomaticSize.Y
+    leaderboardContainer.LayoutOrder = 3
+    leaderboardContainer.Parent = panel
+
+    local leaderboardLayout = Instance.new("UIListLayout")
+    leaderboardLayout.FillDirection = Enum.FillDirection.Vertical
+    leaderboardLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    leaderboardLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    leaderboardLayout.Padding = UDim.new(0, 4)
+    leaderboardLayout.Parent = leaderboardContainer
+
+    local leaderboardStatusLabel = createTextLabel("LeaderboardStatus", "", Enum.Font.Gotham, 14, DESCRIPTION_COLOR)
+    leaderboardStatusLabel.LayoutOrder = 1
+    leaderboardStatusLabel.Parent = leaderboardContainer
+
     local lockedTitle = createTextLabel("LockedTitle", Localization.get("achievementsLockedTitle"), Enum.Font.GothamBold, 16, TITLE_COLOR)
-    lockedTitle.LayoutOrder = 2
+    lockedTitle.LayoutOrder = 4
     lockedTitle.Parent = panel
 
     local lockedContainer = Instance.new("Frame")
@@ -119,7 +174,7 @@ function AchievementHudView.new(playerGui)
     lockedContainer.BackgroundTransparency = 1
     lockedContainer.Size = UDim2.new(1, 0, 0, 0)
     lockedContainer.AutomaticSize = Enum.AutomaticSize.Y
-    lockedContainer.LayoutOrder = 3
+    lockedContainer.LayoutOrder = 5
     lockedContainer.Parent = panel
 
     local lockedLayout = Instance.new("UIListLayout")
@@ -130,7 +185,7 @@ function AchievementHudView.new(playerGui)
     lockedLayout.Parent = lockedContainer
 
     local unlockedTitle = createTextLabel("UnlockedTitle", Localization.get("achievementsUnlockedTitle"), Enum.Font.GothamBold, 16, TITLE_COLOR)
-    unlockedTitle.LayoutOrder = 4
+    unlockedTitle.LayoutOrder = 6
     unlockedTitle.Parent = panel
 
     local unlockedContainer = Instance.new("Frame")
@@ -138,7 +193,7 @@ function AchievementHudView.new(playerGui)
     unlockedContainer.BackgroundTransparency = 1
     unlockedContainer.Size = UDim2.new(1, 0, 0, 0)
     unlockedContainer.AutomaticSize = Enum.AutomaticSize.Y
-    unlockedContainer.LayoutOrder = 5
+    unlockedContainer.LayoutOrder = 7
     unlockedContainer.Parent = panel
 
     local unlockedLayout = Instance.new("UIListLayout")
@@ -150,15 +205,23 @@ function AchievementHudView.new(playerGui)
 
     self.screenGui = screenGui
     self.panel = panel
+    self.leaderboardContainer = leaderboardContainer
+    self.leaderboardStatusLabel = leaderboardStatusLabel
     self.lockedContainer = lockedContainer
     self.unlockedContainer = unlockedContainer
     self.titleLabel = titleLabel
+    self.leaderboardTitle = leaderboardTitle
     self.lockedTitle = lockedTitle
     self.unlockedTitle = unlockedTitle
+    self.leaderboardEntries = {}
     self.lockedEntries = {}
     self.unlockedEntries = {}
 
     self.latestSummary = {}
+    self.leaderboardState = {
+        status = "loading",
+        entries = {},
+    }
 
     self.localizationConnection = Localization.onLanguageChanged(function()
         self:_applyLocalization()
@@ -241,6 +304,13 @@ function AchievementHudView:_createEntry(parent, data, unlocked)
     return frame
 end
 
+function AchievementHudView:_createLeaderboardEntry(parent, index, entry)
+    local label = createTextLabel(string.format("Entry%d", index), formatLeaderboardEntryText(index, entry), Enum.Font.Gotham, 14, TITLE_COLOR)
+    label.LayoutOrder = index
+    label.Parent = parent
+    return label
+end
+
 function AchievementHudView:_populate(container, entries, cache, unlocked, emptyMessage)
     destroyEntries(cache)
 
@@ -276,6 +346,40 @@ function AchievementHudView:_render()
     )
 end
 
+function AchievementHudView:_renderLeaderboard()
+    if not self.leaderboardStatusLabel then
+        return
+    end
+
+    destroyEntries(self.leaderboardEntries)
+
+    local state = self.leaderboardState or { status = "empty", entries = {} }
+    local status = state.status
+
+    if status == "loading" then
+        self.leaderboardStatusLabel.Visible = true
+        self.leaderboardStatusLabel.Text = Localization.get("achievementsLeaderboardLoading")
+        return
+    elseif status == "error" then
+        self.leaderboardStatusLabel.Visible = true
+        self.leaderboardStatusLabel.Text = Localization.get("achievementsLeaderboardError")
+        return
+    end
+
+    local entries = state.entries or {}
+    if #entries == 0 then
+        self.leaderboardStatusLabel.Visible = true
+        self.leaderboardStatusLabel.Text = Localization.get("achievementsLeaderboardEmpty")
+        return
+    end
+
+    self.leaderboardStatusLabel.Visible = false
+    for index, entry in ipairs(entries) do
+        local frame = self:_createLeaderboardEntry(self.leaderboardContainer, index, entry)
+        table.insert(self.leaderboardEntries, frame)
+    end
+end
+
 function AchievementHudView:Update(summary)
     if summary == nil then
         self.latestSummary = {}
@@ -291,6 +395,10 @@ function AchievementHudView:_applyLocalization()
         self.titleLabel.Text = Localization.get("achievementsTitle")
     end
 
+    if self.leaderboardTitle then
+        self.leaderboardTitle.Text = Localization.get("achievementsLeaderboardTitle")
+    end
+
     if self.lockedTitle then
         self.lockedTitle.Text = Localization.get("achievementsLockedTitle")
     end
@@ -300,9 +408,11 @@ function AchievementHudView:_applyLocalization()
     end
 
     self:_render()
+    self:_renderLeaderboard()
 end
 
 function AchievementHudView:Destroy()
+    destroyEntries(self.leaderboardEntries)
     destroyEntries(self.lockedEntries)
     destroyEntries(self.unlockedEntries)
     if self.localizationConnection then
@@ -313,6 +423,45 @@ function AchievementHudView:Destroy()
         self.screenGui:Destroy()
         self.screenGui = nil
     end
+end
+
+function AchievementHudView:SetLeaderboardLoading()
+    self.leaderboardState = {
+        status = "loading",
+        entries = {},
+    }
+    self:_renderLeaderboard()
+end
+
+function AchievementHudView:SetLeaderboardError()
+    self.leaderboardState = {
+        status = "error",
+        entries = {},
+    }
+    self:_renderLeaderboard()
+end
+
+function AchievementHudView:SetLeaderboardEntries(entries)
+    local copy = cloneLeaderboardEntries(entries)
+    local status = "empty"
+    if #copy > 0 then
+        status = "success"
+    end
+
+    self.leaderboardState = {
+        status = status,
+        entries = copy,
+    }
+
+    self:_renderLeaderboard()
+end
+
+function AchievementHudView:GetLeaderboardFrames()
+    return self.leaderboardEntries
+end
+
+function AchievementHudView:GetLeaderboardStatusLabel()
+    return self.leaderboardStatusLabel
 end
 
 return AchievementHudView
