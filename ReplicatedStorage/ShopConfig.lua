@@ -69,6 +69,15 @@ local ShopConfig = {
                 },
             },
             {
+                itemId = "scout_longbow",
+                price = 220,
+                quantity = 1,
+                requirements = {
+                    minLevel = 4,
+                    classes = { "arqueiro" },
+                },
+            },
+            {
                 itemId = "guardian_greaves",
                 price = 360,
                 quantity = 1,
