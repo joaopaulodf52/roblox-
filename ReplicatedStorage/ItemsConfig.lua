@@ -381,11 +381,33 @@ local ItemsConfig = {
             maxHealth = 120,
         },
     },
+    scout_longbow = {
+        id = "scout_longbow",
+        name = "Arco Longo do Batedor",
+        type = "equipment",
+        slot = "weapon",
+        description = "Arco longínquo usado por batedores para acertar alvos com precisão letal.",
+        attributes = {
+            attack = 14,
+            criticalChance = 0.12,
+        },
+    },
     royal_arrowheads = {
         id = "royal_arrowheads",
         name = "Pontas Reais",
         type = "material",
         description = "Pontas de flecha forjadas com precisão para acertar pontos críticos.",
+    },
+    camouflage_cloak = {
+        id = "camouflage_cloak",
+        name = "Manto de Camuflagem",
+        type = "equipment",
+        slot = "cloak",
+        description = "Manto texturizado que se mistura à vegetação, dificultando ser encontrado.",
+        attributes = {
+            defense = 7,
+            detectionReduction = 0.25,
+        },
     },
     crown_sigil_cloak = {
         id = "crown_sigil_cloak",
@@ -446,6 +468,13 @@ ItemsConfig.recipes = {
         ingredients = {
             training_quiver = 1,
             precision_string = 1,
+        },
+    },
+    scout_longbow = {
+        result = "scout_longbow",
+        ingredients = {
+            precision_string = 1,
+            royal_arrowheads = 1,
         },
     },
     molten_gauntlets = {
