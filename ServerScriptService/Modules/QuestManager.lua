@@ -137,6 +137,7 @@ function QuestManager.new(player, characterStats, inventory)
     self.inventory = inventory
     self.profile = PlayerProfileStore.Load(player)
     self.data = self.profile.quests
+    self.achievementManager = nil
     self:_ensureStructure()
     self:_pushUpdate()
     return self
@@ -226,6 +227,10 @@ function QuestManager:_completeQuest(questId, entry)
 
     self.data.active[questId] = nil
     self.data.completed[questId] = entry
+
+    if self.achievementManager and self.achievementManager.OnQuestCompleted then
+        self.achievementManager:OnQuestCompleted(questId)
+    end
 
     self:_grantRewards(definition)
     self:_save()
@@ -320,7 +325,18 @@ function QuestManager:RegisterCollection(target, amount)
 end
 
 function QuestManager:Destroy()
+    self.achievementManager = nil
     PlayerProfileStore.Save(self.player)
+end
+
+function QuestManager:BindAchievementManager(manager)
+    self.achievementManager = manager
+end
+
+function QuestManager:UnbindAchievementManager(manager)
+    if manager == nil or manager == self.achievementManager then
+        self.achievementManager = nil
+    end
 end
 
 return QuestManager
