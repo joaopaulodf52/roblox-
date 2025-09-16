@@ -7,7 +7,7 @@ local QuestHudController = require(script.Parent:WaitForChild("QuestHudControlle
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local controller = QuestHudController.new(Remotes.QuestUpdated, playerGui)
+local controller = QuestHudController.new(Remotes.QuestUpdated, playerGui, Remotes.InventoryRequest)
 
 script.Destroying:Connect(function()
     controller:Destroy()

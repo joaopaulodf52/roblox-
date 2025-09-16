@@ -168,5 +168,52 @@ return function()
             inventoryController:Destroy()
             statsController:Destroy()
         end)
+
+        it("allows abandoning quests to free active slots", function()
+            local statsController, inventoryController, questController = createControllers()
+
+            local accepted = questController:AcceptQuest("slay_goblins")
+            expect(accepted).to.equal(true)
+
+            local abandoned, abandonErr = questController:AbandonQuest("slay_goblins")
+            expect(abandoned).to.equal(true)
+            expect(abandonErr).to.equal(nil)
+
+            local summary = questController:GetSummary()
+            expect(summary.active.slay_goblins).to.equal(nil)
+            expect(summary.completed.slay_goblins).to.equal(nil)
+
+            local reaccepted = questController:AcceptQuest("slay_goblins")
+            expect(reaccepted).to.equal(true)
+
+            questController:Destroy()
+            inventoryController:Destroy()
+            statsController:Destroy()
+        end)
+
+        it("rejects abandon attempts for quests that are not active", function()
+            local statsController, inventoryController, questController = createControllers()
+
+            local success, err = questController:AbandonQuest("slay_goblins")
+            expect(success).to.equal(false)
+            expect(err).to.be.ok()
+
+            questController:AcceptQuest("slay_goblins")
+
+            local invalidQuestSuccess, invalidQuestErr = questController:AbandonQuest("gather_herbs")
+            expect(invalidQuestSuccess).to.equal(false)
+            expect(invalidQuestErr).to.be.ok()
+
+            local invalidTypeSuccess, invalidTypeErr = questController:AbandonQuest(nil)
+            expect(invalidTypeSuccess).to.equal(false)
+            expect(invalidTypeErr).to.be.ok()
+
+            local summary = questController:GetSummary()
+            expect(summary.active.slay_goblins).to.be.ok()
+
+            questController:Destroy()
+            inventoryController:Destroy()
+            statsController:Destroy()
+        end)
     end)
 end
