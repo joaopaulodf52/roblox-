@@ -33,6 +33,60 @@ local function cloneQuestStates(states)
     return copy
 end
 
+local function cloneReward(reward)
+    local copy = {}
+    if reward.experience then
+        copy.experience = reward.experience
+    end
+    if reward.gold then
+        copy.gold = reward.gold
+    end
+    if reward.items then
+        copy.items = {}
+        for itemId, quantity in pairs(reward.items) do
+            copy.items[itemId] = quantity
+        end
+    end
+    return copy
+end
+
+local function mergeRewards(target, addition)
+    if not addition then
+        return target
+    end
+
+    if addition.experience then
+        target.experience = (target.experience or 0) + addition.experience
+    end
+    if addition.gold then
+        target.gold = (target.gold or 0) + addition.gold
+    end
+    if addition.items then
+        target.items = target.items or {}
+        for itemId, quantity in pairs(addition.items) do
+            target.items[itemId] = (target.items[itemId] or 0) + quantity
+        end
+    end
+
+    return target
+end
+
+local function cleanupReward(reward)
+    if not reward then
+        return nil
+    end
+
+    if reward.items and next(reward.items) == nil then
+        reward.items = nil
+    end
+
+    if reward.experience == nil and reward.gold == nil and reward.items == nil then
+        return nil
+    end
+
+    return reward
+end
+
 local function countEntries(dictionary)
     local count = 0
     for _ in pairs(dictionary) do
@@ -68,6 +122,14 @@ local function resolvePlayerClass(characterStats)
     return stats.class
 end
 
+local function normalizeClassName(className)
+    if type(className) == "string" then
+        return string.lower(className)
+    end
+
+    return className
+end
+
 function QuestManager.new(player, characterStats, inventory)
     local self = setmetatable({}, QuestManager)
     self.player = player
@@ -97,8 +159,13 @@ function QuestManager:_pushUpdate()
 end
 
 function QuestManager:GetSummary()
+    local active = cloneQuestStates(self.data.active)
+    for questId, entry in pairs(active) do
+        entry.plannedReward = self:_computePlannedReward(questId)
+    end
+
     return {
-        active = cloneQuestStates(self.data.active),
+        active = active,
         completed = cloneQuestStates(self.data.completed),
     }
 end
@@ -158,15 +225,37 @@ function QuestManager:_grantRewards(definition)
         return
     end
 
-    local playerClass = resolvePlayerClass(self.characterStats)
-    if type(playerClass) == "string" then
-        playerClass = string.lower(playerClass)
-    end
+    local playerClass = normalizeClassName(resolvePlayerClass(self.characterStats))
 
     local classReward = classRewards and classRewards[playerClass]
     if classReward then
         applyRewardBundle(self, classReward)
     end
+end
+
+function QuestManager:_computePlannedReward(questId)
+    local definition = QuestConfig[questId]
+    if not definition then
+        return nil
+    end
+
+    local rewardDefinition = definition.reward
+    if not rewardDefinition then
+        return nil
+    end
+
+    local preview = cloneReward(rewardDefinition)
+
+    local classRewards = rewardDefinition.classRewards or rewardDefinition.byClass
+    if classRewards then
+        local playerClass = normalizeClassName(resolvePlayerClass(self.characterStats))
+        local classReward = classRewards[playerClass]
+        if classReward then
+            preview = mergeRewards(preview, classReward)
+        end
+    end
+
+    return cleanupReward(preview)
 end
 
 function QuestManager:UpdateProgress(questId, amount)
