@@ -91,6 +91,19 @@ return function()
             expect(profileSchema.crafting.fields).to.be.ok()
             expect(profileSchema.crafting.statistics).to.be.ok()
             expect(profileSchema.crafting.statistics.totalCrafted).to.equal(0)
+
+            expect(profileSchema.achievements).to.be.ok()
+            expect(profileSchema.achievements.fields).to.be.ok()
+            expect(profileSchema.achievements.counters).to.be.ok()
+            expect(profileSchema.achievements.counters.fields).to.be.ok()
+            expect(profileSchema.achievements.counters.kills).to.be.ok()
+            expect(profileSchema.achievements.counters.kills.fields).to.be.ok()
+
+            local leaderboardsSchema = schemas.leaderboards
+            expect(leaderboardsSchema).to.be.ok()
+            expect(leaderboardsSchema.achievements).to.be.ok()
+            expect(leaderboardsSchema.achievements.storeName).to.be.ok()
+            expect(leaderboardsSchema.achievements.maxEntries).to.be.ok()
         end)
 
         it("persists migration state between runs", function()

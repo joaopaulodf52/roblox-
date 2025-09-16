@@ -1,0 +1,413 @@
+local DataStoreService = game:GetService("DataStoreService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local AchievementConfig = require(ReplicatedStorage:WaitForChild("AchievementConfig"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
+local PlayerProfileStore = require(script.Parent.PlayerProfileStore)
+
+local AchievementManager = {}
+AchievementManager.__index = AchievementManager
+
+local leaderboardConfig = AchievementConfig.leaderboard or {}
+local LEADERBOARD_STORE_NAME = leaderboardConfig.storeName or "RPG_ACHIEVEMENTS_LEADERBOARD"
+
+local dataStoreService = DataStoreService
+
+local definitionsSource = AchievementConfig.definitions or AchievementConfig
+
+local ACHIEVEMENTS = {}
+local EXPERIENCE_ACHIEVEMENTS = {}
+local KILL_ACHIEVEMENTS_DEFAULT = {}
+local KILL_ACHIEVEMENTS_BY_TARGET = {}
+
+local function resolveGoal(condition)
+    local goal = condition.threshold or condition.goal or condition.count or 1
+    if type(goal) ~= "number" then
+        goal = tonumber(goal) or 1
+    end
+    goal = math.floor(goal)
+    if goal < 1 then
+        goal = 1
+    end
+    return goal
+end
+
+local function normalizeConditionType(condition)
+    local conditionType = condition.type
+    if type(conditionType) ~= "string" then
+        return nil
+    end
+    return string.lower(conditionType)
+end
+
+local function cloneReward(reward)
+    if not reward then
+        return nil
+    end
+
+    local copy = {}
+    if reward.experience and type(reward.experience) == "number" then
+        copy.experience = reward.experience
+    end
+    if reward.gold and type(reward.gold) == "number" then
+        copy.gold = reward.gold
+    end
+    if reward.items and type(reward.items) == "table" then
+        local itemsCopy = {}
+        for itemId, quantity in pairs(reward.items) do
+            itemsCopy[itemId] = quantity
+        end
+        if next(itemsCopy) ~= nil then
+            copy.items = itemsCopy
+        end
+    end
+
+    if next(copy) == nil then
+        return nil
+    end
+
+    return copy
+end
+
+for id, definition in pairs(definitionsSource) do
+    if type(definition) == "table" then
+        local condition = definition.condition or {}
+        local conditionType = normalizeConditionType(condition)
+        local goal = resolveGoal(condition)
+
+        local normalized = {
+            id = id,
+            name = definition.name or id,
+            description = definition.description or "",
+            type = conditionType,
+            target = condition.target,
+            goal = goal,
+            reward = cloneReward(definition.reward),
+        }
+
+        ACHIEVEMENTS[id] = normalized
+
+        if conditionType == "experience" then
+            table.insert(EXPERIENCE_ACHIEVEMENTS, normalized)
+        elseif conditionType == "kill" then
+            local target = normalized.target
+            if type(target) ~= "string" or target == "" then
+                table.insert(KILL_ACHIEVEMENTS_DEFAULT, normalized)
+            else
+                KILL_ACHIEVEMENTS_BY_TARGET[target] = KILL_ACHIEVEMENTS_BY_TARGET[target] or {}
+                table.insert(KILL_ACHIEVEMENTS_BY_TARGET[target], normalized)
+            end
+        end
+    end
+end
+
+local function ensureKillsStructure(container)
+    container = container or {}
+    container.total = container.total or 0
+    container.byType = container.byType or {}
+    return container
+end
+
+function AchievementManager._setDataStoreService(service)
+    dataStoreService = service or dataStoreService
+end
+
+function AchievementManager._resetDataStoreService()
+    dataStoreService = game:GetService("DataStoreService")
+end
+
+local function countEntries(dictionary)
+    local count = 0
+    for _ in pairs(dictionary) do
+        count += 1
+    end
+    return count
+end
+
+function AchievementManager.new(player, characterStats, inventory, combat)
+    local self = setmetatable({}, AchievementManager)
+    self.player = player
+    self.characterStats = characterStats
+    self.inventory = inventory
+    self.combat = combat
+    self.profile = PlayerProfileStore.Load(player)
+    self.data = self.profile.achievements or {}
+    self._destroyed = false
+    self._experienceSuppression = 0
+
+    self:_ensureStructure()
+    self:_bindControllers()
+    self:_pushUpdate()
+    return self
+end
+
+function AchievementManager:_bindControllers()
+    if self.characterStats and self.characterStats.BindAchievementManager then
+        self.characterStats:BindAchievementManager(self)
+    end
+
+    if self.combat and self.combat.BindAchievementManager then
+        self.combat:BindAchievementManager(self)
+    end
+end
+
+function AchievementManager:_ensureStructure()
+    self.data.version = self.data.version or 1
+    self.data.unlocked = self.data.unlocked or {}
+    self.data.progress = self.data.progress or {}
+    local counters = self.data.counters or {}
+    counters.experience = counters.experience or 0
+    counters.kills = ensureKillsStructure(counters.kills)
+    self.data.counters = counters
+end
+
+function AchievementManager:_save()
+    PlayerProfileStore.Update(self.player, function(profile)
+        profile.achievements = self.data
+        return profile
+    end)
+end
+
+function AchievementManager:_pushUpdate()
+    if self._destroyed then
+        return
+    end
+
+    Remotes.AchievementUpdated:FireClient(self.player, self:GetSummary())
+end
+
+function AchievementManager:_saveAndSync()
+    self:_save()
+    self:_pushUpdate()
+end
+
+function AchievementManager:_getUnlockedCount()
+    return countEntries(self.data.unlocked)
+end
+
+function AchievementManager:_updateLeaderboard()
+    local player = self.player
+    if not player then
+        return
+    end
+
+    local userId = player.UserId
+    if type(userId) ~= "number" or userId <= 0 then
+        return
+    end
+
+    local success, err = pcall(function()
+        local store = dataStoreService:GetOrderedDataStore(LEADERBOARD_STORE_NAME)
+        local key = tostring(userId)
+        store:UpdateAsync(key, function()
+            return self:_getUnlockedCount()
+        end)
+    end)
+
+    if not success then
+        warn(string.format("Falha ao atualizar leaderboard de conquistas para %s: %s", player.Name, tostring(err)))
+    end
+end
+
+function AchievementManager:_suppressExperienceTracking()
+    self._experienceSuppression += 1
+end
+
+function AchievementManager:_resumeExperienceTracking()
+    if self._experienceSuppression > 0 then
+        self._experienceSuppression -= 1
+    end
+end
+
+function AchievementManager:_isExperienceSuppressed()
+    return self._experienceSuppression > 0
+end
+
+function AchievementManager:_applyReward(reward)
+    if not reward then
+        return
+    end
+
+    if reward.experience and self.characterStats then
+        self:_suppressExperienceTracking()
+        self.characterStats:AddExperience(reward.experience)
+        self:_resumeExperienceTracking()
+    end
+
+    if reward.gold and self.characterStats then
+        self.characterStats:AddGold(reward.gold)
+    end
+
+    if reward.items and self.inventory then
+        for itemId, quantity in pairs(reward.items) do
+            local success, err = self.inventory:AddItem(itemId, quantity, { notifyQuest = false })
+            if not success then
+                warn(string.format("Falha ao conceder item de conquista %s ao jogador %s: %s", tostring(itemId), self.player and self.player.Name or "?", tostring(err)))
+            end
+        end
+    end
+end
+
+function AchievementManager:_unlockAchievement(definition)
+    local id = definition.id
+    if self.data.unlocked[id] then
+        return
+    end
+
+    self.data.unlocked[id] = {
+        unlockedAt = os.time(),
+    }
+    self.data.progress[id] = definition.goal
+
+    self:_applyReward(definition.reward)
+    self:_saveAndSync()
+    self:_updateLeaderboard()
+end
+
+function AchievementManager:_incrementProgress(definition, amount)
+    if amount <= 0 then
+        return false
+    end
+
+    local id = definition.id
+    if self.data.unlocked[id] then
+        return false
+    end
+
+    local current = self.data.progress[id] or 0
+    local newValue = current + amount
+    if newValue >= definition.goal then
+        self.data.progress[id] = definition.goal
+        self:_unlockAchievement(definition)
+        return true
+    end
+
+    if newValue ~= current then
+        self.data.progress[id] = newValue
+        return true
+    end
+
+    return false
+end
+
+function AchievementManager:OnExperienceGained(amount)
+    amount = math.max(amount or 0, 0)
+    if amount <= 0 or self:_isExperienceSuppressed() or self._destroyed then
+        return
+    end
+
+    self.data.counters.experience = self.data.counters.experience + amount
+
+    local changed = false
+    for _, definition in ipairs(EXPERIENCE_ACHIEVEMENTS) do
+        if self:_incrementProgress(definition, amount) then
+            changed = true
+        end
+    end
+
+    if changed then
+        self:_saveAndSync()
+    else
+        self:_save()
+    end
+end
+
+function AchievementManager:OnEnemyDefeated(enemyType)
+    if self._destroyed then
+        return
+    end
+
+    local kills = self.data.counters.kills
+    kills.total += 1
+    if enemyType then
+        local byType = kills.byType
+        byType[enemyType] = (byType[enemyType] or 0) + 1
+    end
+
+    local changed = false
+    for _, definition in ipairs(KILL_ACHIEVEMENTS_DEFAULT) do
+        if self:_incrementProgress(definition, 1) then
+            changed = true
+        end
+    end
+
+    if enemyType then
+        local byTypeList = KILL_ACHIEVEMENTS_BY_TARGET[enemyType]
+        if byTypeList then
+            for _, definition in ipairs(byTypeList) do
+                if self:_incrementProgress(definition, 1) then
+                    changed = true
+                end
+            end
+        end
+    end
+
+    if changed then
+        self:_saveAndSync()
+    else
+        self:_save()
+    end
+end
+
+local function rewardCopy(reward)
+    return cloneReward(reward)
+end
+
+local function buildEntry(definition, progress, unlockedAt)
+    local entry = {
+        id = definition.id,
+        name = definition.name,
+        description = definition.description,
+        goal = definition.goal,
+        progress = math.clamp(progress, 0, definition.goal),
+        reward = rewardCopy(definition.reward),
+    }
+
+    if unlockedAt then
+        entry.unlockedAt = unlockedAt
+        entry.progress = definition.goal
+    end
+
+    return entry
+end
+
+function AchievementManager:GetSummary()
+    local locked = {}
+    local unlocked = {}
+
+    for id, definition in pairs(ACHIEVEMENTS) do
+        local unlockedInfo = self.data.unlocked[id]
+        local progressValue = self.data.progress[id] or 0
+        local entry = buildEntry(definition, progressValue, unlockedInfo and unlockedInfo.unlockedAt)
+        if unlockedInfo then
+            unlocked[id] = entry
+        else
+            locked[id] = entry
+        end
+    end
+
+    return {
+        locked = locked,
+        unlocked = unlocked,
+    }
+end
+
+function AchievementManager:Destroy()
+    if self._destroyed then
+        return
+    end
+
+    self._destroyed = true
+
+    if self.characterStats and self.characterStats.UnbindAchievementManager then
+        self.characterStats:UnbindAchievementManager(self)
+    end
+
+    if self.combat and self.combat.UnbindAchievementManager then
+        self.combat:UnbindAchievementManager(self)
+    end
+
+    self:_save()
+end
+
+return AchievementManager

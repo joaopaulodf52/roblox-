@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreManager = require(script.Parent.DataStoreManager)
 local GameConfig = require(ReplicatedStorage:WaitForChild("GameConfig"))
 local MapConfig = require(ReplicatedStorage:WaitForChild("MapConfig"))
+local AchievementConfig = require(ReplicatedStorage:WaitForChild("AchievementConfig"))
 
 local function resolveDefaultMapId()
     local candidate = MapConfig.defaultMap
@@ -175,6 +176,78 @@ local function registerMigrations()
 
             profile.crafting = crafting
             schemas.profile = profile
+        end,
+    })
+
+    DataStoreManager:RegisterMigration({
+        id = "20240507_profile_achievements_structure",
+        order = 7,
+        dependencies = { "20240501_profile_schema_v1" },
+        run = function(state)
+            local schemas = ensureSchemaContainer(state)
+            local profile = schemas.profile or {}
+            local achievements = profile.achievements or {}
+
+            if typeof(achievements.version) ~= "number" or achievements.version < 1 then
+                achievements.version = 1
+            end
+
+            achievements.fields = achievements.fields or {
+                "unlocked",
+                "progress",
+                "counters",
+            }
+
+            local counters = achievements.counters or {}
+            counters.fields = counters.fields or {
+                "experience",
+                "kills",
+            }
+
+            counters.experience = counters.experience or 0
+
+            local kills = counters.kills or {}
+            kills.fields = kills.fields or {
+                "total",
+                "byType",
+            }
+            kills.total = kills.total or 0
+            kills.byType = kills.byType or {}
+
+            counters.kills = kills
+            achievements.counters = counters
+
+            profile.achievements = achievements
+            schemas.profile = profile
+        end,
+    })
+
+    DataStoreManager:RegisterMigration({
+        id = "20240508_achievements_leaderboard_schema",
+        order = 8,
+        dependencies = {
+            "20240507_profile_achievements_structure",
+        },
+        run = function(state)
+            local schemas = ensureSchemaContainer(state)
+            local leaderboards = schemas.leaderboards or {}
+            local achievementsBoard = leaderboards.achievements or {}
+
+            if typeof(achievementsBoard.version) ~= "number" or achievementsBoard.version < 1 then
+                achievementsBoard.version = 1
+            end
+
+            achievementsBoard.fields = achievementsBoard.fields or {
+                "storeName",
+                "maxEntries",
+            }
+
+            local leaderboardSettings = AchievementConfig.leaderboard or {}
+            achievementsBoard.storeName = achievementsBoard.storeName or leaderboardSettings.storeName or "RPG_ACHIEVEMENTS_LEADERBOARD"
+            achievementsBoard.maxEntries = achievementsBoard.maxEntries or leaderboardSettings.maxEntries or 50
+
+            leaderboards.achievements = achievementsBoard
+            schemas.leaderboards = leaderboards
         end,
     })
 end
