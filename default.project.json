@@ -1,0 +1,24 @@
+{
+  "name": "RPGProject",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "$path": "ReplicatedStorage"
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$path": "ServerScriptService"
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$path": "StarterGui"
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$path": "StarterPlayer/StarterPlayerScripts"
+      }
+    }
+  }
+}
