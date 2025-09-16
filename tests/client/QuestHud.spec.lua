@@ -5,6 +5,9 @@ return function()
     local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
     local QuestHudView = require(StarterGui:WaitForChild("QuestHudView"))
     local QuestHudController = require(StarterGui:WaitForChild("QuestHudController"))
+    local Localization = require(ReplicatedStorage:WaitForChild("Localization"))
+
+    local supportedLanguages = { "pt", "en" }
 
     local function createMockRemote()
         local connections = {}
@@ -50,6 +53,7 @@ return function()
         local playerGui
 
         beforeEach(function()
+            Localization.setLanguage("pt")
             playerGui = Instance.new("PlayerGui")
         end)
 
@@ -69,53 +73,66 @@ return function()
             local entriesContainer = screenGui:FindFirstChild("Panel"):FindFirstChild("Entries")
             local emptyLabel = entriesContainer:FindFirstChild("EmptyLabel")
             expect(emptyLabel.Visible).to.equal(true)
+            expect(emptyLabel.Text).to.equal(Localization.get("noActiveQuests"))
 
             view:Destroy()
         end)
 
-        it("renders quest entries with progress and rewards", function()
-            local view = QuestHudView.new(playerGui)
+        for _, language in ipairs(supportedLanguages) do
+            it(string.format("renders quest entries with progress and rewards (%s)", language), function()
+                Localization.setLanguage(language)
 
-            view:UpdateQuests({
-                active = {
-                    slay_goblins = {
-                        id = "slay_goblins",
-                        progress = 2,
-                        goal = 5,
-                        plannedReward = {
-                            experience = QuestConfig.slay_goblins.reward.experience,
-                            gold = QuestConfig.slay_goblins.reward.gold,
-                            items = {
-                                potion_small = QuestConfig.slay_goblins.reward.items.potion_small,
+                local view = QuestHudView.new(playerGui)
+
+                view:UpdateQuests({
+                    active = {
+                        slay_goblins = {
+                            id = "slay_goblins",
+                            progress = 2,
+                            goal = 5,
+                            plannedReward = {
+                                experience = QuestConfig.slay_goblins.reward.experience,
+                                gold = QuestConfig.slay_goblins.reward.gold,
+                                items = {
+                                    potion_small = QuestConfig.slay_goblins.reward.items.potion_small,
+                                },
                             },
                         },
                     },
-                },
-            })
+                })
 
-            local questFrames = view:GetQuestFrames()
-            expect(#questFrames).to.equal(1)
+                local questFrames = view:GetQuestFrames()
+                expect(#questFrames).to.equal(1)
 
-            local questFrame = questFrames[1]
-            local titleLabel = questFrame:FindFirstChild("Title")
-            expect(titleLabel.Text).to.equal(QuestConfig.slay_goblins.name)
+                local questFrame = questFrames[1]
+                local titleLabel = questFrame:FindFirstChild("Title")
+                expect(titleLabel.Text).to.equal(QuestConfig.slay_goblins.name)
 
-            local progressLabel = questFrame:FindFirstChild("Progress")
-            expect(progressLabel.Text).to.contain("2 / 5")
+                local progressLabel = questFrame:FindFirstChild("Progress")
+                local progressPrefix = Localization.get("progressFormat"):match("^[^:]+")
+                if progressPrefix then
+                    expect(progressLabel.Text).to.contain(progressPrefix)
+                end
+                expect(progressLabel.Text).to.contain("2 / 5")
 
-            local rewardLabel = questFrame:FindFirstChild("Rewards")
-            expect(rewardLabel.Text).to.contain("Recompensas")
-            expect(rewardLabel.Text).to.contain(tostring(QuestConfig.slay_goblins.reward.experience))
-            expect(rewardLabel.Text).to.contain("Ouro")
-            expect(rewardLabel.Text).to.contain("Poção de Cura Pequena")
+                local rewardLabel = questFrame:FindFirstChild("Rewards")
+                local rewardsLabel = Localization.get("rewardsLabel")
+                if rewardsLabel then
+                    expect(rewardLabel.Text:sub(1, #rewardsLabel)).to.equal(rewardsLabel)
+                end
+                expect(rewardLabel.Text).to.contain(tostring(QuestConfig.slay_goblins.reward.experience))
+                expect(rewardLabel.Text).to.contain(Localization.get("gold"))
+                expect(rewardLabel.Text).to.contain("Poção de Cura Pequena")
 
-            local screenGui = playerGui:FindFirstChild("QuestHud")
-            local entriesContainer = screenGui:FindFirstChild("Panel"):FindFirstChild("Entries")
-            local emptyLabel = entriesContainer:FindFirstChild("EmptyLabel")
-            expect(emptyLabel.Visible).to.equal(false)
+                local screenGui = playerGui:FindFirstChild("QuestHud")
+                local entriesContainer = screenGui:FindFirstChild("Panel"):FindFirstChild("Entries")
+                local emptyLabel = entriesContainer:FindFirstChild("EmptyLabel")
+                expect(emptyLabel.Visible).to.equal(false)
 
-            view:Destroy()
-        end)
+                view:Destroy()
+            end)
+        end
+        Localization.setLanguage("pt")
 
         it("exposes an abandon button that invokes the configured handler", function()
             local view = QuestHudView.new(playerGui)
@@ -146,6 +163,41 @@ return function()
             expect(capturedQuestId).to.equal("slay_goblins")
 
             view:Destroy()
+        end)
+
+        it("updates quest labels when the language changes", function()
+            Localization.setLanguage("pt")
+            local view = QuestHudView.new(playerGui)
+
+            view:UpdateQuests({
+                active = {
+                    gather_herbs = {
+                        id = "gather_herbs",
+                        progress = 1,
+                        goal = 3,
+                        plannedReward = {
+                            gold = 25,
+                        },
+                    },
+                },
+            })
+
+            local frames = view:GetQuestFrames()
+            expect(#frames).to.equal(1)
+
+            local rewardLabel = frames[1]:FindFirstChild("Rewards")
+            expect(rewardLabel.Text).to.contain(Localization.get("gold"))
+
+            Localization.setLanguage("en")
+            task.wait()
+
+            expect(rewardLabel.Text).to.contain(Localization.get("gold"))
+
+            local abandonButton = frames[1]:FindFirstChild("AbandonButton")
+            expect(abandonButton.Text).to.equal(Localization.get("abandonQuest"))
+
+            view:Destroy()
+            Localization.setLanguage("pt")
         end)
 
         it("updates the view when the remote event fires", function()
