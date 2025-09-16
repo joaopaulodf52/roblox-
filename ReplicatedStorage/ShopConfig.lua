@@ -61,6 +61,15 @@ local ShopConfig = {
                 },
             },
             {
+                itemId = "archon_robe",
+                price = 240,
+                quantity = 1,
+                requirements = {
+                    minLevel = 4,
+                    classes = { "mago" },
+                },
+            },
+            {
                 itemId = "trail_lantern",
                 price = 80,
                 quantity = 1,
