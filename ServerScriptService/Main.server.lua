@@ -10,6 +10,7 @@ local QuestManager = require(script.Modules.QuestManager)
 local Combat = require(script.Modules.Combat)
 local Skills = require(script.Modules.Skills)
 local Crafting = require(script.Modules.Crafting)
+local ShopManager = require(script.Modules.ShopManager)
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
 local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
@@ -38,11 +39,15 @@ local MAX_INVENTORY_REQUESTS_PER_WINDOW = 8
 local MAX_COMBAT_REQUESTS_PER_WINDOW = 12
 local MAX_SKILL_REQUESTS_PER_WINDOW = 15
 local MAX_CRAFTING_REQUESTS_PER_WINDOW = 6
+local MAX_SHOP_OPEN_REQUESTS_PER_WINDOW = 6
+local MAX_SHOP_PURCHASE_REQUESTS_PER_WINDOW = 10
 
 local inventoryRequestCounters = {}
 local combatRequestCounters = {}
 local skillRequestCounters = {}
 local craftingRequestCounters = {}
+local shopOpenRequestCounters = {}
+local shopPurchaseRequestCounters = {}
 
 local function logInvalidRequest(player, requestType, reason)
     local playerName = player and player.Name or "Desconhecido"
@@ -59,6 +64,8 @@ local function clearRateLimitState(player)
     combatRequestCounters[userId] = nil
     skillRequestCounters[userId] = nil
     craftingRequestCounters[userId] = nil
+    shopOpenRequestCounters[userId] = nil
+    shopPurchaseRequestCounters[userId] = nil
 end
 
 local function isRateLimited(counter, player, maxRequests)
@@ -92,6 +99,15 @@ end
 
 local function isValidString(value, maxLength)
     return type(value) == "string" and value ~= "" and #value <= (maxLength or 64)
+end
+
+local function getItemDisplayName(itemId)
+    local itemConfig = ItemsConfig[itemId]
+    if itemConfig and itemConfig.name then
+        return itemConfig.name
+    end
+
+    return itemId
 end
 
 local function validateInventoryRequest(request)
@@ -215,6 +231,33 @@ local function validateCraftingRequest(payload)
     }
 end
 
+local NON_CRITICAL_SHOP_FAILURES = {
+    insufficient_gold = true,
+    inventory_full = true,
+    requirements_not_met = true,
+    limit_exceeded = true,
+}
+
+local function resolvePayloadShopId(payload)
+    if type(payload) == "table" then
+        return payload.shopId or payload.id
+    end
+
+    if type(payload) == "string" then
+        return payload
+    end
+
+    return nil
+end
+
+local function resolvePayloadItemId(payload)
+    if type(payload) == "table" then
+        return payload.itemId or payload.id
+    end
+
+    return nil
+end
+
 local function createPlayerControllers(player)
     local stats = CharacterStats.new(player)
     local inventory = Inventory.new(player, stats)
@@ -223,6 +266,7 @@ local function createPlayerControllers(player)
     local combat = Combat.new(player, stats, inventory, quests)
     local skills = Skills.new(player, stats)
     local crafting = Crafting.new(player, inventory)
+    local shop = ShopManager.new(player, stats, inventory)
 
     controllers[player] = {
         stats = stats,
@@ -231,6 +275,7 @@ local function createPlayerControllers(player)
         combat = combat,
         skills = skills,
         crafting = crafting,
+        shop = shop,
     }
 end
 
@@ -250,6 +295,9 @@ local function removePlayerControllers(player)
     end
     if controller.skills then
         controller.skills:Destroy()
+    end
+    if controller.shop then
+        controller.shop:Destroy()
     end
     controllers[player] = nil
     PlayerProfileStore.Save(player)
@@ -341,6 +389,89 @@ Remotes.CraftingRequest.OnServerEvent:Connect(function(player, payload)
             logInvalidRequest(player, "CraftingRequest", message or "falha ao criar item")
         end
     end
+end)
+
+Remotes.ShopOpen.OnServerEvent:Connect(function(player, payload)
+    local controller = controllers[player]
+    if not controller or not controller.shop then
+        return
+    end
+
+    if isRateLimited(shopOpenRequestCounters, player, MAX_SHOP_OPEN_REQUESTS_PER_WINDOW) then
+        logInvalidRequest(player, "ShopOpen", "limite de requisições excedido")
+        return
+    end
+
+    local requestedShopId = resolvePayloadShopId(payload)
+    local view, err = controller.shop:GetShopView(payload)
+    if not view then
+        Remotes.ShopOpen:FireClient(player, {
+            action = "error",
+            shopId = requestedShopId,
+            message = err or "Loja indisponível",
+        })
+
+        if err ~= "ShopManager destruído" then
+            logInvalidRequest(player, "ShopOpen", err or "loja inválida")
+        end
+        return
+    end
+
+    Remotes.ShopOpen:FireClient(player, {
+        action = "open",
+        shop = view,
+    })
+end)
+
+Remotes.ShopPurchase.OnServerEvent:Connect(function(player, payload)
+    local controller = controllers[player]
+    if not controller or not controller.shop then
+        return
+    end
+
+    if isRateLimited(shopPurchaseRequestCounters, player, MAX_SHOP_PURCHASE_REQUESTS_PER_WINDOW) then
+        logInvalidRequest(player, "ShopPurchase", "limite de requisições excedido")
+        return
+    end
+
+    local success, result, detail = controller.shop:Purchase(payload)
+    if not success then
+        Remotes.ShopPurchase:FireClient(player, {
+            action = "result",
+            success = false,
+            shopId = resolvePayloadShopId(payload),
+            itemId = resolvePayloadItemId(payload),
+            message = result or "Compra não realizada",
+            detail = detail,
+        })
+
+        local code = detail and detail.code
+        if not (code and NON_CRITICAL_SHOP_FAILURES[code]) then
+            logInvalidRequest(player, "ShopPurchase", result or "falha ao efetuar compra")
+        end
+        return
+    end
+
+    local itemName = getItemDisplayName(result.itemId)
+    local totalCost = result.totalCost or 0
+    local costText = ""
+    if totalCost > 0 then
+        costText = string.format(" por %d ouro", totalCost)
+    end
+
+    Remotes.ShopPurchase:FireClient(player, {
+        action = "result",
+        success = true,
+        shopId = result.shopId,
+        itemId = result.itemId,
+        quantity = result.quantity,
+        requestedQuantity = result.requestedQuantity,
+        bundleSize = result.bundleSize,
+        totalCost = totalCost,
+        currency = result.currency,
+        message = string.format("Compra concluída: %s x%d%s", itemName, result.quantity or 0, costText),
+        detail = result,
+    })
 end)
 
 Remotes.CombatRequest.OnServerEvent:Connect(function(player, targetPlayer, weaponId)
