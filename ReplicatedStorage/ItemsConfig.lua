@@ -409,6 +409,18 @@ local ItemsConfig = {
             detectionReduction = 0.25,
         },
     },
+    archon_robe = {
+        id = "archon_robe",
+        name = "Veste do Arconte",
+        type = "equipment",
+        slot = "armor",
+        description = "Veste rúnica criada para magos que dominam rituais intermediários.",
+        attributes = {
+            defense = 13,
+            maxMana = 25,
+            manaRegen = 4,
+        },
+    },
     crown_sigil_cloak = {
         id = "crown_sigil_cloak",
         name = "Manto do Selo Real",
@@ -505,6 +517,13 @@ ItemsConfig.recipes = {
         ingredients = {
             forja_compass = 1,
             cristal_vulcanico = 2,
+            ritual_catalyst = 1,
+        },
+    },
+    archon_robe = {
+        result = "archon_robe",
+        ingredients = {
+            essencia_alquimica = 3,
             ritual_catalyst = 1,
         },
     },
