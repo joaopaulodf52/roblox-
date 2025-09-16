@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
+local Localization = require(ReplicatedStorage:WaitForChild("Localization"))
 
 local QuestHudView = {}
 QuestHudView.__index = QuestHudView
@@ -71,20 +72,20 @@ local function formatRewardText(questId, questState)
 
     local segments = {}
     if reward.experience and reward.experience > 0 then
-        table.insert(segments, string.format("%d XP", reward.experience))
+        table.insert(segments, string.format("%d %s", reward.experience, Localization.get("xp")))
     end
     if reward.gold and reward.gold > 0 then
-        table.insert(segments, string.format("%d Ouro", reward.gold))
+        table.insert(segments, string.format("%d %s", reward.gold, Localization.get("gold")))
     end
     for _, itemSegment in ipairs(formatRewardItems(reward.items)) do
         table.insert(segments, itemSegment)
     end
 
     if #segments == 0 then
-        return "Recompensas: nenhuma"
+        return Localization.get("rewardsNone")
     end
 
-    return "Recompensas: " .. table.concat(segments, ", ")
+    return Localization.format("rewardsPrefix", table.concat(segments, ", "))
 end
 
 local function formatProgressText(progress, goal)
@@ -96,7 +97,7 @@ local function formatProgressText(progress, goal)
         percent = math.clamp(math.floor((progress / goal) * 100 + 0.5), 0, 100)
     end
 
-    return string.format("Progresso: %d / %d (%d%%)", progress, goal, percent)
+    return Localization.format("progressFormat", progress, goal, percent)
 end
 
 function QuestHudView.new(playerGui)
@@ -134,7 +135,7 @@ function QuestHudView.new(playerGui)
     panelLayout.Padding = UDim.new(0, 10)
     panelLayout.Parent = panel
 
-    local titleLabel = createTextLabel("Title", "Missões Ativas", Enum.Font.GothamBold, 18, TITLE_TEXT_COLOR)
+    local titleLabel = createTextLabel("Title", Localization.get("activeQuestsTitle"), Enum.Font.GothamBold, 18, TITLE_TEXT_COLOR)
     titleLabel.LayoutOrder = 1
     titleLabel.Parent = panel
 
@@ -153,16 +154,24 @@ function QuestHudView.new(playerGui)
     entriesLayout.Padding = UDim.new(0, 8)
     entriesLayout.Parent = entriesContainer
 
-    local emptyLabel = createTextLabel("EmptyLabel", "Nenhuma missão ativa", Enum.Font.Gotham, 14, DESCRIPTION_TEXT_COLOR)
+    local emptyLabel = createTextLabel("EmptyLabel", Localization.get("noActiveQuests"), Enum.Font.Gotham, 14, DESCRIPTION_TEXT_COLOR)
     emptyLabel.Parent = entriesContainer
 
     self.screenGui = screenGui
     self.panel = panel
     self.entriesContainer = entriesContainer
     self.emptyLabel = emptyLabel
+    self.titleLabel = titleLabel
     self.questFrames = {}
     self.frameConnections = {}
     self.abandonQuestHandler = nil
+    self.latestSummary = nil
+
+    self.localizationConnection = Localization.onLanguageChanged(function()
+        self:_applyLocalization()
+    end)
+
+    self:_applyLocalization()
 
     return self
 end
@@ -243,7 +252,7 @@ function QuestHudView:_createQuestFrame(order, questId, questState)
     local abandonButton = Instance.new("TextButton")
     abandonButton.Name = "AbandonButton"
     abandonButton.LayoutOrder = 5
-    abandonButton.Text = "Abandonar"
+    abandonButton.Text = Localization.get("abandonQuest")
     abandonButton.Font = Enum.Font.Gotham
     abandonButton.TextSize = 14
     abandonButton.TextColor3 = Color3.new(1, 1, 1)
@@ -273,10 +282,11 @@ function QuestHudView:_createQuestFrame(order, questId, questState)
     return frame
 end
 
-function QuestHudView:UpdateQuests(summary)
+function QuestHudView:_render()
     self:_clearEntries()
 
-    local active = summary and summary.active or {}
+    local summary = self.latestSummary or {}
+    local active = summary.active or {}
     local questList = {}
     for questId, questState in pairs(active) do
         table.insert(questList, { id = questId, state = questState })
@@ -299,13 +309,39 @@ function QuestHudView:UpdateQuests(summary)
     end
 end
 
+function QuestHudView:UpdateQuests(summary)
+    if summary == nil then
+        self.latestSummary = {}
+    else
+        self.latestSummary = summary
+    end
+
+    self:_render()
+end
+
 function QuestHudView:GetQuestFrames()
     return table.clone(self.questFrames)
+end
+
+function QuestHudView:_applyLocalization()
+    if self.titleLabel then
+        self.titleLabel.Text = Localization.get("activeQuestsTitle")
+    end
+
+    if self.emptyLabel then
+        self.emptyLabel.Text = Localization.get("noActiveQuests")
+    end
+
+    self:_render()
 end
 
 function QuestHudView:Destroy()
     self:_clearEntries()
     self.abandonQuestHandler = nil
+    if self.localizationConnection then
+        self.localizationConnection:Disconnect()
+        self.localizationConnection = nil
+    end
     if self.screenGui then
         self.screenGui:Destroy()
         self.screenGui = nil

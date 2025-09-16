@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
+local Localization = require(ReplicatedStorage:WaitForChild("Localization"))
 
 local AchievementHudView = {}
 AchievementHudView.__index = AchievementHudView
@@ -38,25 +39,25 @@ end
 
 local function formatRewardText(reward)
     if not reward then
-        return "Recompensas: nenhuma"
+        return Localization.get("rewardsNone")
     end
 
     local segments = {}
     if reward.experience and reward.experience > 0 then
-        table.insert(segments, string.format("%d XP", reward.experience))
+        table.insert(segments, string.format("%d %s", reward.experience, Localization.get("xp")))
     end
     if reward.gold and reward.gold > 0 then
-        table.insert(segments, string.format("%d Ouro", reward.gold))
+        table.insert(segments, string.format("%d %s", reward.gold, Localization.get("gold")))
     end
     for _, entry in ipairs(formatRewardItems(reward.items)) do
         table.insert(segments, entry)
     end
 
     if #segments == 0 then
-        return "Recompensas: nenhuma"
+        return Localization.get("rewardsNone")
     end
 
-    return "Recompensas: " .. table.concat(segments, ", ")
+    return Localization.format("rewardsPrefix", table.concat(segments, ", "))
 end
 
 local function toSortedArray(dictionary)
@@ -105,11 +106,11 @@ function AchievementHudView.new(playerGui)
     layout.Padding = UDim.new(0, 10)
     layout.Parent = panel
 
-    local titleLabel = createTextLabel("Title", "Conquistas", Enum.Font.GothamBold, 18, TITLE_COLOR)
+    local titleLabel = createTextLabel("Title", Localization.get("achievementsTitle"), Enum.Font.GothamBold, 18, TITLE_COLOR)
     titleLabel.LayoutOrder = 1
     titleLabel.Parent = panel
 
-    local lockedTitle = createTextLabel("LockedTitle", "Em Progresso", Enum.Font.GothamBold, 16, TITLE_COLOR)
+    local lockedTitle = createTextLabel("LockedTitle", Localization.get("achievementsLockedTitle"), Enum.Font.GothamBold, 16, TITLE_COLOR)
     lockedTitle.LayoutOrder = 2
     lockedTitle.Parent = panel
 
@@ -128,7 +129,7 @@ function AchievementHudView.new(playerGui)
     lockedLayout.Padding = UDim.new(0, 8)
     lockedLayout.Parent = lockedContainer
 
-    local unlockedTitle = createTextLabel("UnlockedTitle", "Conquistas Desbloqueadas", Enum.Font.GothamBold, 16, TITLE_COLOR)
+    local unlockedTitle = createTextLabel("UnlockedTitle", Localization.get("achievementsUnlockedTitle"), Enum.Font.GothamBold, 16, TITLE_COLOR)
     unlockedTitle.LayoutOrder = 4
     unlockedTitle.Parent = panel
 
@@ -151,8 +152,19 @@ function AchievementHudView.new(playerGui)
     self.panel = panel
     self.lockedContainer = lockedContainer
     self.unlockedContainer = unlockedContainer
+    self.titleLabel = titleLabel
+    self.lockedTitle = lockedTitle
+    self.unlockedTitle = unlockedTitle
     self.lockedEntries = {}
     self.unlockedEntries = {}
+
+    self.latestSummary = {}
+
+    self.localizationConnection = Localization.onLanguageChanged(function()
+        self:_applyLocalization()
+    end)
+
+    self:_applyLocalization()
 
     return self
 end
@@ -169,9 +181,9 @@ end
 local function formatProgress(progress, goal, unlocked)
     progress = progress or 0
     goal = goal or 0
-    local text = string.format("Progresso: %d / %d", progress, goal)
+    local text = Localization.format("achievementsProgressFormat", progress, goal)
     if unlocked then
-        text ..= " (concluído)"
+        text ..= " " .. Localization.get("achievementsProgressComplete")
     end
     return text
 end
@@ -221,7 +233,7 @@ function AchievementHudView:_createEntry(parent, data, unlocked)
     rewardLabel.Parent = frame
 
     if unlocked and data.unlockedAt then
-        local timestampLabel = createTextLabel("UnlockedAt", os.date("Conquistado em %d/%m/%Y %H:%M", data.unlockedAt), Enum.Font.Gotham, 12, DESCRIPTION_COLOR)
+        local timestampLabel = createTextLabel("UnlockedAt", os.date(Localization.get("achievementsUnlockedAtFormat"), data.unlockedAt), Enum.Font.Gotham, 12, DESCRIPTION_COLOR)
         timestampLabel.LayoutOrder = 5
         timestampLabel.Parent = frame
     end
@@ -246,15 +258,57 @@ function AchievementHudView:_populate(container, entries, cache, unlocked, empty
     end
 end
 
+function AchievementHudView:_render()
+    local summary = self.latestSummary or {}
+    self:_populate(
+        self.lockedContainer,
+        summary.locked or {},
+        self.lockedEntries,
+        false,
+        Localization.get("achievementsNoneInProgress")
+    )
+    self:_populate(
+        self.unlockedContainer,
+        summary.unlocked or {},
+        self.unlockedEntries,
+        true,
+        Localization.get("achievementsNoneUnlocked")
+    )
+end
+
 function AchievementHudView:Update(summary)
-    summary = summary or {}
-    self:_populate(self.lockedContainer, summary.locked or {}, self.lockedEntries, false, "Nenhuma conquista em andamento")
-    self:_populate(self.unlockedContainer, summary.unlocked or {}, self.unlockedEntries, true, "Nenhuma conquista desbloqueada")
+    if summary == nil then
+        self.latestSummary = {}
+    else
+        self.latestSummary = summary
+    end
+
+    self:_render()
+end
+
+function AchievementHudView:_applyLocalization()
+    if self.titleLabel then
+        self.titleLabel.Text = Localization.get("achievementsTitle")
+    end
+
+    if self.lockedTitle then
+        self.lockedTitle.Text = Localization.get("achievementsLockedTitle")
+    end
+
+    if self.unlockedTitle then
+        self.unlockedTitle.Text = Localization.get("achievementsUnlockedTitle")
+    end
+
+    self:_render()
 end
 
 function AchievementHudView:Destroy()
     destroyEntries(self.lockedEntries)
     destroyEntries(self.unlockedEntries)
+    if self.localizationConnection then
+        self.localizationConnection:Disconnect()
+        self.localizationConnection = nil
+    end
     if self.screenGui then
         self.screenGui:Destroy()
         self.screenGui = nil

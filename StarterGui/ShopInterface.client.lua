@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local ShopConfig = require(ReplicatedStorage:WaitForChild("ShopConfig"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
+local Localization = require(ReplicatedStorage:WaitForChild("Localization"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -25,12 +26,13 @@ local function getItemName(itemId)
 end
 
 local function formatCurrency(amount, currency)
-    currency = string.lower(currency or "gold")
-    if currency == "gold" then
-        return string.format("%d ouro", amount or 0)
+    local rawCurrency = currency or "gold"
+    local lowerCurrency = string.lower(rawCurrency)
+    if lowerCurrency == "gold" then
+        return Localization.format("currencyGoldFormat", amount or 0)
     end
 
-    return string.format("%d %s", amount or 0, currency)
+    return Localization.format("currencyGenericFormat", amount or 0, rawCurrency)
 end
 
 local screenGui = Instance.new("ScreenGui")
@@ -58,7 +60,7 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 20
 titleLabel.TextColor3 = Color3.fromRGB(235, 235, 235)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Text = "Lojas"
+titleLabel.Text = Localization.get("shopTitle")
 titleLabel.Parent = mainFrame
 
 local shopsFrame = Instance.new("Frame")
@@ -89,7 +91,7 @@ shopNameLabel.Font = Enum.Font.GothamBold
 shopNameLabel.TextSize = 18
 shopNameLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
 shopNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-shopNameLabel.Text = "Selecione uma loja"
+shopNameLabel.Text = Localization.get("shopSelectPrompt")
 shopNameLabel.Parent = shopHeader
 
 local shopDescriptionLabel = Instance.new("TextLabel")
@@ -145,12 +147,70 @@ messageLabel.TextColor3 = INFO_COLOR
 messageLabel.TextWrapped = true
 messageLabel.TextXAlignment = Enum.TextXAlignment.Left
 messageLabel.TextYAlignment = Enum.TextYAlignment.Top
-messageLabel.Text = "Selecione uma loja para visualizar os itens disponíveis."
+messageLabel.Text = ""
 messageLabel.Parent = mainFrame
 
 local shopButtons = {}
 local selectedShopButton
 local currentShopId
+local currentShopData
+
+local currentMessage
+
+local function setMessage(color, keyOrText, isKey, ...)
+    messageLabel.TextColor3 = color
+    if isKey then
+        local params = { ... }
+        messageLabel.Text = Localization.format(keyOrText, table.unpack(params))
+        currentMessage = { key = keyOrText, params = params, color = color }
+    else
+        messageLabel.Text = keyOrText
+        currentMessage = nil
+    end
+end
+
+local function reapplyLocalizedMessage()
+    if currentMessage then
+        messageLabel.TextColor3 = currentMessage.color
+        messageLabel.Text = Localization.format(currentMessage.key, table.unpack(currentMessage.params))
+    end
+end
+
+setMessage(INFO_COLOR, "shopSelectMessage", true)
+
+local function applyLocalization()
+    titleLabel.Text = Localization.get("shopTitle")
+
+    if currentShopData then
+        shopNameLabel.Text = currentShopData.name or currentShopData.id or Localization.get("shopDefaultName")
+        shopDescriptionLabel.Text = currentShopData.description or ""
+    else
+        shopNameLabel.Text = Localization.get("shopSelectPrompt")
+        shopDescriptionLabel.Text = ""
+    end
+
+    local savedMessage = currentMessage
+    local savedText = messageLabel.Text
+    local savedColor = messageLabel.TextColor3
+
+    if currentShopData then
+        renderShop(currentShopData)
+    else
+        reapplyLocalizedMessage()
+    end
+
+    if savedMessage then
+        currentMessage = savedMessage
+        messageLabel.TextColor3 = savedMessage.color
+        messageLabel.Text = Localization.format(savedMessage.key, table.unpack(savedMessage.params))
+    elseif savedText ~= "" then
+        messageLabel.TextColor3 = savedColor
+        messageLabel.Text = savedText
+        currentMessage = nil
+    else
+        reapplyLocalizedMessage()
+    end
+end
 
 local function highlightShop(shopId)
     if selectedShopButton and selectedShopButton.Parent then
@@ -193,7 +253,7 @@ local function createItemEntry(itemData)
     nameLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
     local bundleSize = tonumber(itemData.bundleSize) or 1
     if bundleSize > 1 then
-        nameLabel.Text = string.format("%s (Pacote x%d)", itemData.name, bundleSize)
+        nameLabel.Text = Localization.format("bundleNameFormat", itemData.name, bundleSize)
     else
         nameLabel.Text = itemData.name
     end
@@ -212,10 +272,10 @@ local function createItemEntry(itemData)
 
     local details = { formatCurrency(itemData.price, itemData.currency) }
     if bundleSize > 1 then
-        table.insert(details, string.format("Pacote: %d itens", bundleSize))
+        table.insert(details, Localization.format("bundleDetails", bundleSize))
     end
     if itemData.maxQuantity then
-        table.insert(details, string.format("Máx compra: %d", itemData.maxQuantity))
+        table.insert(details, Localization.format("maxPurchase", itemData.maxQuantity))
     end
     detailsLabel.Text = table.concat(details, "  •  ")
     detailsLabel.Parent = entryFrame
@@ -259,7 +319,7 @@ local function createItemEntry(itemData)
     quantityBox.TextSize = 14
     quantityBox.TextColor3 = Color3.fromRGB(235, 235, 235)
     quantityBox.PlaceholderColor3 = Color3.fromRGB(160, 160, 160)
-    quantityBox.PlaceholderText = "Qtd"
+    quantityBox.PlaceholderText = Localization.get("quantityPlaceholder")
     quantityBox.Text = "1"
     quantityBox.Parent = entryFrame
 
@@ -272,34 +332,31 @@ local function createItemEntry(itemData)
     buyButton.Font = Enum.Font.GothamBold
     buyButton.TextSize = 14
     buyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    buyButton.Text = "Comprar"
+    buyButton.Text = Localization.get("buy")
     buyButton.Parent = entryFrame
 
     if not itemData.available then
         buyButton.BackgroundColor3 = Color3.fromRGB(90, 50, 50)
-        buyButton.Text = "Bloqueado"
+        buyButton.Text = Localization.get("locked")
         buyButton.AutoButtonColor = false
         buyButton.Active = false
         quantityBox.Visible = false
     else
         buyButton.MouseButton1Click:Connect(function()
             if not currentShopId then
-                messageLabel.TextColor3 = INFO_COLOR
-                messageLabel.Text = "Selecione uma loja antes de comprar."
+                setMessage(INFO_COLOR, "shopSelectBeforeBuying", true)
                 return
             end
 
             local desired = tonumber(quantityBox.Text)
             if not desired then
-                messageLabel.TextColor3 = ERROR_COLOR
-                messageLabel.Text = "Informe uma quantidade válida."
+                setMessage(ERROR_COLOR, "invalidQuantity", true)
                 return
             end
 
             desired = math.floor(desired)
             if desired < 1 then
-                messageLabel.TextColor3 = ERROR_COLOR
-                messageLabel.Text = "A quantidade deve ser pelo menos 1."
+                setMessage(ERROR_COLOR, "quantityMinimum", true)
                 return
             end
 
@@ -318,17 +375,17 @@ local function renderShop(shopData)
     end
 
     currentShopId = shopData.id
+    currentShopData = shopData
     highlightShop(shopData.id)
 
-    shopNameLabel.Text = shopData.name or shopData.id or "Loja"
+    shopNameLabel.Text = shopData.name or shopData.id or Localization.get("shopDefaultName")
     shopDescriptionLabel.Text = shopData.description or ""
 
     clearItemEntries()
 
     local items = shopData.items or {}
     if #items == 0 then
-        messageLabel.TextColor3 = INFO_COLOR
-        messageLabel.Text = "Nenhum item disponível nesta loja no momento."
+        setMessage(INFO_COLOR, "shopNoItems", true)
         return
     end
 
@@ -336,8 +393,8 @@ local function renderShop(shopData)
         createItemEntry(item)
     end
 
-    messageLabel.TextColor3 = INFO_COLOR
-    messageLabel.Text = string.format("Mostrando %d itens em %s.", #items, shopData.name or shopData.id or "loja")
+    local displayName = shopData.name or shopData.id or Localization.get("shopDefaultName")
+    setMessage(INFO_COLOR, "shopShowItems", true, #items, displayName)
 end
 
 local function requestShop(shopId)
@@ -387,14 +444,14 @@ local function buildShopButtons()
 
         button.MouseButton1Click:Connect(function()
             highlightShop(entry.id)
-            messageLabel.TextColor3 = INFO_COLOR
-            messageLabel.Text = string.format("Solicitando itens de %s...", entry.name)
+            setMessage(INFO_COLOR, "shopRequestItems", true, entry.name)
             requestShop(entry.id)
         end)
     end
 
     if entries[1] then
         highlightShop(entries[1].id)
+        setMessage(INFO_COLOR, "shopRequestItems", true, entries[1].name)
         requestShop(entries[1].id)
     end
 end
@@ -408,8 +465,11 @@ Remotes.ShopOpen.OnClientEvent:Connect(function(payload)
     if action == "open" and type(payload.shop) == "table" then
         renderShop(payload.shop)
     elseif action == "error" then
-        messageLabel.TextColor3 = ERROR_COLOR
-        messageLabel.Text = payload.message or "Não foi possível abrir a loja."
+        if payload.message then
+            setMessage(ERROR_COLOR, payload.message, false)
+        else
+            setMessage(ERROR_COLOR, "shopOpenFallbackError", true)
+        end
     end
 end)
 
@@ -427,14 +487,31 @@ Remotes.ShopPurchase.OnClientEvent:Connect(function(payload)
         local itemId = payload.itemId or detail.itemId
         local itemName = getItemName(itemId)
         local quantity = detail.quantity or payload.quantity or 0
-        local message = payload.message or string.format("Compra concluída: %s x%d", itemName, quantity)
-
-        messageLabel.TextColor3 = SUCCESS_COLOR
-        messageLabel.Text = message
+        if payload.message then
+            setMessage(SUCCESS_COLOR, payload.message, false)
+        else
+            setMessage(SUCCESS_COLOR, "purchaseSuccessFormat", true, itemName, quantity)
+        end
     else
-        messageLabel.TextColor3 = ERROR_COLOR
-        messageLabel.Text = payload.message or "Compra não realizada."
+        if payload.message then
+            setMessage(ERROR_COLOR, payload.message, false)
+        else
+            setMessage(ERROR_COLOR, "purchaseFailureFallback", true)
+        end
     end
 end)
 
 buildShopButtons()
+
+applyLocalization()
+
+local localizationConnection = Localization.onLanguageChanged(function()
+    applyLocalization()
+end)
+
+script.Destroying:Connect(function()
+    if localizationConnection then
+        localizationConnection:Disconnect()
+        localizationConnection = nil
+    end
+end)
