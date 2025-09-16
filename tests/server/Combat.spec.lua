@@ -39,7 +39,7 @@ return function()
         it("ensures damage is never below one", function()
             local attacker = { attack = 5 }
             local defender = { defense = 50 }
-            local damage = Combat.CalculateDamage(attacker, defender)
+            local damage = select(1, Combat.CalculateDamage(attacker, defender, {}))
 
             expect(damage).to.equal(1)
         end)
@@ -67,12 +67,42 @@ return function()
             end
 
             Combat._setRandomGenerator(mockRandom({ 0.75 }))
-            local nonCritical = Combat.CalculateDamage(attacker, defender, weaponConfig)
+            local nonCritical = select(1, Combat.CalculateDamage(attacker, defender, {
+                weaponConfig = weaponConfig,
+            }))
             expect(nonCritical).to.equal(15)
 
             Combat._setRandomGenerator(mockRandom({ 0.25 }))
-            local critical = Combat.CalculateDamage(attacker, defender, weaponConfig)
+            local critical = select(1, Combat.CalculateDamage(attacker, defender, {
+                weaponConfig = weaponConfig,
+            }))
             expect(critical).to.equal(math.floor(15 * 1.5))
+        end)
+
+        it("respects resistances and level differences", function()
+            local attacker = { attack = 40, level = 8 }
+            local defender = { defense = 5, level = 8, resistances = { physical = 0 } }
+
+            local baseDamage = select(1, Combat.CalculateDamage(attacker, defender, {
+                damageType = "physical",
+            }))
+            expect(baseDamage > 1).to.equal(true)
+
+            defender.resistances.physical = 0.5
+            local resistedDamage, detail = Combat.CalculateDamage(attacker, defender, {
+                damageType = "physical",
+            })
+
+            expect(resistedDamage < baseDamage).to.equal(true)
+            expect(detail.resistance).to.equal(0.5)
+
+            local highLevelAttacker = { attack = 40, level = 12 }
+            defender.resistances.physical = 0
+            local leveledDamage = select(1, Combat.CalculateDamage(highLevelAttacker, defender, {
+                damageType = "physical",
+            }))
+
+            expect(leveledDamage > baseDamage).to.equal(true)
         end)
 
         it("resolves attacks and completes kill quests when enemy is defeated", function()

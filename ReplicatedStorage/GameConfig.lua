@@ -11,6 +11,16 @@ GameConfig.DefaultStats = {
     defense = 5,
     gold = 0,
     class = "guerreiro",
+    resistances = {
+        physical = 0,
+        fire = 0,
+        ice = 0,
+        lightning = 0,
+        poison = 0,
+    },
+    dodgeChance = 0,
+    blockChance = 0,
+    blockReduction = 0.5,
 }
 
 GameConfig.Classes = {
