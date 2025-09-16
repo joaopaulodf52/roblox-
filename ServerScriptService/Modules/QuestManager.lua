@@ -8,6 +8,23 @@ local PlayerProfileStore = require(script.Parent.PlayerProfileStore)
 local QuestManager = {}
 QuestManager.__index = QuestManager
 
+local function sanitizeProgressAmount(amount)
+    if amount == nil then
+        amount = 1
+    end
+
+    if type(amount) ~= "number" then
+        return nil
+    end
+
+    local normalized = math.floor(amount)
+    if normalized < 1 then
+        return nil
+    end
+
+    return normalized
+end
+
 local function cloneQuestStates(states)
     local copy = {}
     for questId, data in pairs(states) do
@@ -153,7 +170,12 @@ function QuestManager:_grantRewards(definition)
 end
 
 function QuestManager:UpdateProgress(questId, amount)
-    amount = amount or 1
+    local sanitizedAmount = sanitizeProgressAmount(amount)
+    if not sanitizedAmount then
+        return false
+    end
+
+    amount = sanitizedAmount
     local entry = self.data.active[questId]
     if not entry then
         return false
@@ -178,11 +200,15 @@ function QuestManager:RegisterKill(target)
     end
 end
 
-function QuestManager:RegisterCollection(target)
+function QuestManager:RegisterCollection(target, amount)
+    local progressAmount = sanitizeProgressAmount(amount)
+    if not progressAmount then
+        return
+    end
     for questId, entry in pairs(self.data.active) do
         local objective = entry.objective or {}
         if objective.type == "collect" and objective.target == target then
-            self:UpdateProgress(questId, 1)
+            self:UpdateProgress(questId, progressAmount)
         end
     end
 end

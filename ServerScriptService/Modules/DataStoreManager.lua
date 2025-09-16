@@ -199,5 +199,13 @@ function DataStoreManager:GetState()
     return loadMigrationState(migrationStore)
 end
 
+function DataStoreManager._setDataStoreService(service)
+    DataStoreService = service
+end
+
+function DataStoreManager._resetDataStoreService()
+    DataStoreService = game:GetService("DataStoreService")
+end
+
 return DataStoreManager
 

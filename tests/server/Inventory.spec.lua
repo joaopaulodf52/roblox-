@@ -86,5 +86,31 @@ return function()
             inventoryController:Destroy()
             statsController:Destroy()
         end)
+
+        it("rejects invalid quantities in inventory operations", function()
+            local statsController, inventoryController = createControllers()
+
+            local addResult, addErr = inventoryController:AddItem("potion_small", 0)
+            expect(addResult).to.equal(false)
+            expect(addErr).to.equal("Quantidade inválida")
+
+            local hasSpace = inventoryController:HasSpace(0)
+            expect(hasSpace).to.equal(false)
+
+            inventoryController.data.items.potion_small = {
+                id = "potion_small",
+                quantity = 2,
+            }
+
+            local removeResult, removeErr = inventoryController:RemoveItem("potion_small", -1)
+            expect(removeResult).to.equal(false)
+            expect(removeErr).to.equal("Quantidade inválida")
+
+            local hasItem = inventoryController:HasItem("potion_small", -5)
+            expect(hasItem).to.equal(false)
+
+            inventoryController:Destroy()
+            statsController:Destroy()
+        end)
     end)
 end

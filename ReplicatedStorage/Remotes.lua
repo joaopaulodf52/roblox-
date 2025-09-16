@@ -1,29 +1,40 @@
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local RemotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
-if not RemotesFolder then
-    RemotesFolder = Instance.new("Folder")
-    RemotesFolder.Name = "Remotes"
-    RemotesFolder.Parent = ReplicatedStorage
+local RemotesFolder
+
+if RunService:IsServer() then
+    RemotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+    if not RemotesFolder then
+        RemotesFolder = Instance.new("Folder")
+        RemotesFolder.Name = "Remotes"
+        RemotesFolder.Parent = ReplicatedStorage
+    end
+else
+    RemotesFolder = ReplicatedStorage:WaitForChild("Remotes")
 end
 
-local function getOrCreate(remoteType, name)
-    local remote = RemotesFolder:FindFirstChild(name)
-    if not remote then
-        remote = Instance.new(remoteType)
-        remote.Name = name
-        remote.Parent = RemotesFolder
+local function resolveRemote(remoteType, name)
+    if RunService:IsServer() then
+        local remote = RemotesFolder:FindFirstChild(name)
+        if not remote then
+            remote = Instance.new(remoteType)
+            remote.Name = name
+            remote.Parent = RemotesFolder
+        end
+        return remote
     end
-    return remote
+
+    return RemotesFolder:WaitForChild(name)
 end
 
 local Remotes = {
-    StatsUpdated = getOrCreate("RemoteEvent", "StatsUpdated"),
-    InventoryUpdated = getOrCreate("RemoteEvent", "InventoryUpdated"),
-    QuestUpdated = getOrCreate("RemoteEvent", "QuestUpdated"),
-    CombatNotification = getOrCreate("RemoteEvent", "CombatNotification"),
-    CombatRequest = getOrCreate("RemoteEvent", "CombatRequest"),
-    InventoryRequest = getOrCreate("RemoteEvent", "InventoryRequest"),
+    StatsUpdated = resolveRemote("RemoteEvent", "StatsUpdated"),
+    InventoryUpdated = resolveRemote("RemoteEvent", "InventoryUpdated"),
+    QuestUpdated = resolveRemote("RemoteEvent", "QuestUpdated"),
+    CombatNotification = resolveRemote("RemoteEvent", "CombatNotification"),
+    CombatRequest = resolveRemote("RemoteEvent", "CombatRequest"),
+    InventoryRequest = resolveRemote("RemoteEvent", "InventoryRequest"),
 }
 
 return Remotes

@@ -8,6 +8,23 @@ local PlayerProfileStore = require(script.Parent.PlayerProfileStore)
 local Inventory = {}
 Inventory.__index = Inventory
 
+local function sanitizeQuantity(quantity, default)
+    if quantity == nil then
+        quantity = default or 1
+    end
+
+    if type(quantity) ~= "number" then
+        return nil
+    end
+
+    local normalized = math.floor(quantity)
+    if normalized < 1 then
+        return nil
+    end
+
+    return normalized
+end
+
 local function cloneItemsTable(items)
     local copy = {}
     for id, entry in pairs(items) do
@@ -73,12 +90,21 @@ function Inventory:_currentLoad()
 end
 
 function Inventory:HasSpace(quantity)
-    quantity = quantity or 1
-    return self:_currentLoad() + quantity <= self.data.capacity
+    local sanitized = sanitizeQuantity(quantity, 1)
+    if not sanitized then
+        return false
+    end
+
+    return self:_currentLoad() + sanitized <= self.data.capacity
 end
 
 function Inventory:AddItem(itemId, quantity, options)
-    quantity = quantity or 1
+    local sanitizedQuantity = sanitizeQuantity(quantity, 1)
+    if not sanitizedQuantity then
+        return false, "Quantidade inválida"
+    end
+
+    quantity = sanitizedQuantity
     options = options or {}
     local notifyQuest = options.notifyQuest
     if notifyQuest == nil then
@@ -104,16 +130,19 @@ function Inventory:AddItem(itemId, quantity, options)
     self:_pushUpdate()
 
     if notifyQuest and self.questManager then
-        for _ = 1, quantity do
-            self.questManager:RegisterCollection(itemId)
-        end
+        self.questManager:RegisterCollection(itemId, quantity)
     end
 
     return true
 end
 
 function Inventory:RemoveItem(itemId, quantity)
-    quantity = quantity or 1
+    local sanitizedQuantity = sanitizeQuantity(quantity, 1)
+    if not sanitizedQuantity then
+        return false, "Quantidade inválida"
+    end
+
+    quantity = sanitizedQuantity
     local entry = self.data.items[itemId]
     if not entry or entry.quantity < quantity then
         return false
@@ -130,7 +159,12 @@ function Inventory:RemoveItem(itemId, quantity)
 end
 
 function Inventory:HasItem(itemId, quantity)
-    quantity = quantity or 1
+    local sanitizedQuantity = sanitizeQuantity(quantity, 1)
+    if not sanitizedQuantity then
+        return false
+    end
+
+    quantity = sanitizedQuantity
     local entry = self.data.items[itemId]
     return entry ~= nil and entry.quantity >= quantity
 end

@@ -63,7 +63,7 @@ local function isRateLimited(counter, player, maxRequests)
         return false
     end
 
-    local now = tick()
+    local now = os.clock()
     local entry = counter[userId]
     if not entry or now - entry.windowStart >= RATE_LIMIT_WINDOW then
         counter[userId] = {

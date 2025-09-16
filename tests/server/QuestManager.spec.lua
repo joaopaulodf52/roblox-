@@ -118,5 +118,33 @@ return function()
             inventoryController:Destroy()
             statsController:Destroy()
         end)
+
+        it("increments collection quests according to the collected amount", function()
+            local statsController, inventoryController, questController = createControllers()
+
+            questController:AcceptQuest("gather_herbs")
+            questController:RegisterCollection("Herb", 2)
+
+            local summary = questController:GetSummary()
+            expect(summary.active.gather_herbs).to.be.ok()
+            expect(summary.active.gather_herbs.progress).to.equal(2)
+
+            local invalidUpdate = questController:UpdateProgress("gather_herbs", 0)
+            expect(invalidUpdate).to.equal(false)
+
+            questController:RegisterCollection("Herb", 1)
+
+            summary = questController:GetSummary()
+            expect(summary.active.gather_herbs).to.equal(nil)
+            expect(summary.completed.gather_herbs).to.be.ok()
+
+            questController:RegisterCollection("Herb", 0)
+            summary = questController:GetSummary()
+            expect(summary.completed.gather_herbs.progress).to.equal(summary.completed.gather_herbs.goal)
+
+            questController:Destroy()
+            inventoryController:Destroy()
+            statsController:Destroy()
+        end)
     end)
 end
