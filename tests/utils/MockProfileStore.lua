@@ -60,6 +60,11 @@ function MockProfileStore:_createProfile()
             active = {},
             completed = {},
         },
+        skills = {
+            unlocked = {},
+            hotbar = {},
+            version = 1,
+        },
     }
 end
 

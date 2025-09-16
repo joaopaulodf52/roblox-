@@ -68,5 +68,25 @@ return function()
 
             statsController:Destroy()
         end)
+
+        it("aplica modificadores temporários e restaura valores originais", function()
+            local statsController = CharacterStats.new(player)
+
+            local baseline = statsController:GetStats()
+            local success = statsController:ApplyTemporaryModifier("attack", 5, 0.1)
+
+            expect(success).to.equal(true)
+            expect(statsController.stats.attack).to.equal(baseline.attack)
+
+            local buffed = statsController:GetStats()
+            expect(buffed.attack).to.equal(baseline.attack + 5)
+
+            task.wait(0.2)
+
+            local reverted = statsController:GetStats()
+            expect(reverted.attack).to.equal(baseline.attack)
+
+            statsController:Destroy()
+        end)
     end)
 end

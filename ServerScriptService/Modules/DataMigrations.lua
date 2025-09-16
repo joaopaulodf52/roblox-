@@ -115,6 +115,32 @@ local function registerMigrations()
             schemas.profile = profile
         end,
     })
+
+    DataStoreManager:RegisterMigration({
+        id = "20240505_profile_skills_structure",
+        order = 5,
+        dependencies = { "20240501_profile_schema_v1" },
+        run = function(state)
+            local schemas = ensureSchemaContainer(state)
+            local profile = schemas.profile or {}
+            local skills = profile.skills or {}
+
+            if typeof(skills.version) == "number" and skills.version >= 1 then
+                profile.skills = skills
+                schemas.profile = profile
+                return
+            end
+
+            skills.version = 1
+            skills.fields = {
+                "unlocked",
+                "hotbar",
+            }
+
+            profile.skills = skills
+            schemas.profile = profile
+        end,
+    })
 end
 
 function DataMigrations.Register()
