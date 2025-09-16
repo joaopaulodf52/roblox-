@@ -52,6 +52,31 @@ local AchievementConfig = {
                 experience = 150,
             },
         },
+        quest_novice = {
+            name = "Novato em Missões",
+            description = "Conclua a missão 'Suprimentos de Ervas'.",
+            condition = {
+                type = "quest",
+                target = "gather_herbs",
+                threshold = 1,
+            },
+            reward = {
+                gold = 30,
+            },
+        },
+        quest_adept = {
+            name = "Adepto das Missões",
+            description = "Conclua duas missões quaisquer.",
+            condition = {
+                type = "quest",
+                threshold = 2,
+            },
+            reward = {
+                items = {
+                    potion_small = 1,
+                },
+            },
+        },
     },
 }
 

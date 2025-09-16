@@ -7,6 +7,7 @@ return function()
     local CharacterStats = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("CharacterStats"))
     local Inventory = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("Inventory"))
     local Combat = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("Combat"))
+    local QuestManager = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("QuestManager"))
 
     local MockProfileStore = require(script.Parent.Parent.utils.MockProfileStore)
     local TestPlayers = require(script.Parent.Parent.utils.TestPlayers)
@@ -62,19 +63,26 @@ return function()
         local inventory
         local manager
         local combat
+        local quests
         local mockDataStoreService
 
         local function initializeControllers()
             stats = CharacterStats.new(player)
             inventory = Inventory.new(player, stats)
-            combat = Combat.new(player, stats, inventory, nil)
-            manager = AchievementManager.new(player, stats, inventory, combat)
+            quests = QuestManager.new(player, stats, inventory)
+            inventory:BindQuestManager(quests)
+            combat = Combat.new(player, stats, inventory, quests)
+            manager = AchievementManager.new(player, stats, inventory, combat, quests)
         end
 
         local function cleanupControllers()
             if manager then
                 manager:Destroy()
                 manager = nil
+            end
+            if quests then
+                quests:Destroy()
+                quests = nil
             end
             if combat then
                 combat = nil
@@ -149,6 +157,35 @@ return function()
             expect(summary.unlocked.goblin_slayer).to.be.ok()
 
             store = mockDataStoreService.orderedStores[leaderboardStoreName]
+            expect(store.data[tostring(player.UserId)]).to.equal(2)
+        end)
+
+        it("desbloqueia conquistas ao completar missões", function()
+            initializeControllers()
+
+            local accepted = quests:AcceptQuest("gather_herbs")
+            expect(accepted).to.equal(true)
+
+            local completed = quests:UpdateProgress("gather_herbs", 3)
+            expect(completed).to.equal(true)
+
+            local summary = manager:GetSummary()
+            expect(summary.unlocked.quest_novice).to.be.ok()
+            expect(summary.locked.quest_adept).to.be.ok()
+            expect(summary.locked.quest_adept.progress).to.equal(1)
+
+            accepted = quests:AcceptQuest("slay_goblins")
+            expect(accepted).to.equal(true)
+
+            completed = quests:UpdateProgress("slay_goblins", 5)
+            expect(completed).to.equal(true)
+
+            summary = manager:GetSummary()
+            expect(summary.unlocked.quest_novice).to.be.ok()
+            expect(summary.unlocked.quest_adept).to.be.ok()
+
+            local store = mockDataStoreService.orderedStores[leaderboardStoreName]
+            expect(store).to.be.ok()
             expect(store.data[tostring(player.UserId)]).to.equal(2)
         end)
     end)

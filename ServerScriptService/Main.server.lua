@@ -475,7 +475,7 @@ local function createPlayerControllers(player)
     local skills = Skills.new(player, stats)
     local crafting = Crafting.new(player, inventory)
     local shop = ShopManager.new(player, stats, inventory)
-    local achievements = AchievementManager.new(player, stats, inventory, combat)
+    local achievements = AchievementManager.new(player, stats, inventory, combat, quests)
 
     controllers[player] = {
         stats = stats,

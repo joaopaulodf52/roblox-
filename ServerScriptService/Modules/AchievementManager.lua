@@ -19,6 +19,8 @@ local ACHIEVEMENTS = {}
 local EXPERIENCE_ACHIEVEMENTS = {}
 local KILL_ACHIEVEMENTS_DEFAULT = {}
 local KILL_ACHIEVEMENTS_BY_TARGET = {}
+local QUEST_ACHIEVEMENTS_DEFAULT = {}
+local QUEST_ACHIEVEMENTS_BY_TARGET = {}
 
 local function resolveGoal(condition)
     local goal = condition.threshold or condition.goal or condition.count or 1
@@ -97,6 +99,14 @@ for id, definition in pairs(definitionsSource) do
                 KILL_ACHIEVEMENTS_BY_TARGET[target] = KILL_ACHIEVEMENTS_BY_TARGET[target] or {}
                 table.insert(KILL_ACHIEVEMENTS_BY_TARGET[target], normalized)
             end
+        elseif conditionType == "quest" then
+            local target = normalized.target
+            if type(target) ~= "string" or target == "" then
+                table.insert(QUEST_ACHIEVEMENTS_DEFAULT, normalized)
+            else
+                QUEST_ACHIEVEMENTS_BY_TARGET[target] = QUEST_ACHIEVEMENTS_BY_TARGET[target] or {}
+                table.insert(QUEST_ACHIEVEMENTS_BY_TARGET[target], normalized)
+            end
         end
     end
 end
@@ -105,6 +115,13 @@ local function ensureKillsStructure(container)
     container = container or {}
     container.total = container.total or 0
     container.byType = container.byType or {}
+    return container
+end
+
+local function ensureQuestStructure(container)
+    container = container or {}
+    container.total = container.total or 0
+    container.byQuest = container.byQuest or {}
     return container
 end
 
@@ -124,12 +141,13 @@ local function countEntries(dictionary)
     return count
 end
 
-function AchievementManager.new(player, characterStats, inventory, combat)
+function AchievementManager.new(player, characterStats, inventory, combat, questManager)
     local self = setmetatable({}, AchievementManager)
     self.player = player
     self.characterStats = characterStats
     self.inventory = inventory
     self.combat = combat
+    self.questManager = questManager
     self.profile = PlayerProfileStore.Load(player)
     self.data = self.profile.achievements or {}
     self._destroyed = false
@@ -149,6 +167,10 @@ function AchievementManager:_bindControllers()
     if self.combat and self.combat.BindAchievementManager then
         self.combat:BindAchievementManager(self)
     end
+
+    if self.questManager and self.questManager.BindAchievementManager then
+        self.questManager:BindAchievementManager(self)
+    end
 end
 
 function AchievementManager:_ensureStructure()
@@ -158,6 +180,7 @@ function AchievementManager:_ensureStructure()
     local counters = self.data.counters or {}
     counters.experience = counters.experience or 0
     counters.kills = ensureKillsStructure(counters.kills)
+    counters.quests = ensureQuestStructure(counters.quests)
     self.data.counters = counters
 end
 
@@ -349,6 +372,43 @@ function AchievementManager:OnEnemyDefeated(enemyType)
     end
 end
 
+function AchievementManager:OnQuestCompleted(questId)
+    if self._destroyed then
+        return
+    end
+
+    local quests = self.data.counters.quests
+    quests.total += 1
+    if questId then
+        local byQuest = quests.byQuest
+        byQuest[questId] = (byQuest[questId] or 0) + 1
+    end
+
+    local changed = false
+    for _, definition in ipairs(QUEST_ACHIEVEMENTS_DEFAULT) do
+        if self:_incrementProgress(definition, 1) then
+            changed = true
+        end
+    end
+
+    if questId then
+        local questSpecific = QUEST_ACHIEVEMENTS_BY_TARGET[questId]
+        if questSpecific then
+            for _, definition in ipairs(questSpecific) do
+                if self:_incrementProgress(definition, 1) then
+                    changed = true
+                end
+            end
+        end
+    end
+
+    if changed then
+        self:_saveAndSync()
+    else
+        self:_save()
+    end
+end
+
 local function rewardCopy(reward)
     return cloneReward(reward)
 end
@@ -406,6 +466,12 @@ function AchievementManager:Destroy()
     if self.combat and self.combat.UnbindAchievementManager then
         self.combat:UnbindAchievementManager(self)
     end
+
+    if self.questManager and self.questManager.UnbindAchievementManager then
+        self.questManager:UnbindAchievementManager(self)
+    end
+
+    self.questManager = nil
 
     self:_save()
 end
