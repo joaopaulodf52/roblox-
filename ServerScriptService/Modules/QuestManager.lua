@@ -197,6 +197,23 @@ function QuestManager:AcceptQuest(questId)
     return true
 end
 
+function QuestManager:AbandonQuest(questId)
+    if type(questId) ~= "string" or questId == "" then
+        return false, "Missão inválida"
+    end
+
+    local entry = self.data.active[questId]
+    if not entry then
+        return false, "Missão não está ativa"
+    end
+
+    self.data.active[questId] = nil
+
+    self:_save()
+    self:_pushUpdate()
+    return true
+end
+
 function QuestManager:_completeQuest(questId, entry)
     local definition = QuestConfig[questId]
     if not definition then

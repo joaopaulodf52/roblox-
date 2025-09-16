@@ -168,6 +168,16 @@ local function validateInventoryRequest(request)
             action = action,
             questId = questId,
         }
+    elseif action == "abandonQuest" then
+        local questId = request.questId
+        if not isValidString(questId) then
+            return false, nil, "questId inválido"
+        end
+
+        return true, {
+            action = action,
+            questId = questId,
+        }
     end
 
     return false, nil, string.format("ação não suportada: %s", tostring(action))
@@ -362,6 +372,8 @@ Remotes.InventoryRequest.OnServerEvent:Connect(function(player, request)
         controller.inventory:UseConsumable(sanitized.itemId)
     elseif action == "acceptQuest" then
         controller.quests:AcceptQuest(sanitized.questId)
+    elseif action == "abandonQuest" then
+        controller.quests:AbandonQuest(sanitized.questId)
     end
 end)
 

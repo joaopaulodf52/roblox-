@@ -10,6 +10,7 @@ local TITLE_TEXT_COLOR = Color3.fromRGB(255, 255, 255)
 local DESCRIPTION_TEXT_COLOR = Color3.fromRGB(220, 220, 220)
 local REWARD_TEXT_COLOR = Color3.fromRGB(255, 234, 145)
 local PANEL_BACKGROUND = Color3.fromRGB(20, 20, 20)
+local ABANDON_BUTTON_COLOR = Color3.fromRGB(170, 60, 60)
 
 local function createTextLabel(name, text, font, textSize, textColor)
     local label = Instance.new("TextLabel")
@@ -160,15 +161,35 @@ function QuestHudView.new(playerGui)
     self.entriesContainer = entriesContainer
     self.emptyLabel = emptyLabel
     self.questFrames = {}
+    self.frameConnections = {}
+    self.abandonQuestHandler = nil
 
     return self
 end
 
 function QuestHudView:_clearEntries()
     for _, frame in ipairs(self.questFrames) do
+        local connections = self.frameConnections[frame]
+        if connections then
+            for _, connection in ipairs(connections) do
+                if connection and connection.Disconnect then
+                    connection:Disconnect()
+                end
+            end
+            self.frameConnections[frame] = nil
+        end
         frame:Destroy()
     end
     table.clear(self.questFrames)
+    table.clear(self.frameConnections)
+end
+
+function QuestHudView:SetAbandonQuestHandler(handler)
+    if handler ~= nil then
+        assert(type(handler) == "function", "handler deve ser uma função ou nil")
+    end
+
+    self.abandonQuestHandler = handler
 end
 
 function QuestHudView:_createQuestFrame(order, questId, questState)
@@ -219,6 +240,36 @@ function QuestHudView:_createQuestFrame(order, questId, questState)
     rewardLabel.LayoutOrder = 4
     rewardLabel.Parent = frame
 
+    local abandonButton = Instance.new("TextButton")
+    abandonButton.Name = "AbandonButton"
+    abandonButton.LayoutOrder = 5
+    abandonButton.Text = "Abandonar"
+    abandonButton.Font = Enum.Font.Gotham
+    abandonButton.TextSize = 14
+    abandonButton.TextColor3 = Color3.new(1, 1, 1)
+    abandonButton.AutoButtonColor = false
+    abandonButton.BorderSizePixel = 0
+    abandonButton.Size = UDim2.new(1, 0, 0, 32)
+    abandonButton.BackgroundColor3 = ABANDON_BUTTON_COLOR
+    abandonButton.BackgroundTransparency = 0
+    abandonButton.Parent = frame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = abandonButton
+
+    local connections = {}
+
+    local connection = abandonButton.Activated:Connect(function()
+        if self.abandonQuestHandler then
+            self.abandonQuestHandler(questId)
+        end
+    end)
+
+    table.insert(connections, connection)
+
+    self.frameConnections[frame] = connections
+
     return frame
 end
 
@@ -254,6 +305,7 @@ end
 
 function QuestHudView:Destroy()
     self:_clearEntries()
+    self.abandonQuestHandler = nil
     if self.screenGui then
         self.screenGui:Destroy()
         self.screenGui = nil

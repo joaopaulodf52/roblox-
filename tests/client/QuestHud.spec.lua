@@ -35,6 +35,17 @@ return function()
         return remote
     end
 
+    local function createMockInventoryRemote()
+        local remote = {}
+        remote.calls = {}
+
+        function remote:FireServer(payload)
+            table.insert(self.calls, payload)
+        end
+
+        return remote
+    end
+
     describe("QuestHudView", function()
         local playerGui
 
@@ -106,9 +117,40 @@ return function()
             view:Destroy()
         end)
 
+        it("exposes an abandon button that invokes the configured handler", function()
+            local view = QuestHudView.new(playerGui)
+            local capturedQuestId
+
+            view:SetAbandonQuestHandler(function(questId)
+                capturedQuestId = questId
+            end)
+
+            view:UpdateQuests({
+                active = {
+                    slay_goblins = {
+                        id = "slay_goblins",
+                        progress = 0,
+                        goal = 3,
+                    },
+                },
+            })
+
+            local questFrames = view:GetQuestFrames()
+            expect(#questFrames).to.equal(1)
+
+            local abandonButton = questFrames[1]:FindFirstChild("AbandonButton")
+            expect(abandonButton).to.be.ok()
+
+            abandonButton:Activate()
+
+            expect(capturedQuestId).to.equal("slay_goblins")
+
+            view:Destroy()
+        end)
+
         it("updates the view when the remote event fires", function()
             local remote = createMockRemote()
-            local controller = QuestHudController.new(remote, playerGui)
+            local controller = QuestHudController.new(remote, playerGui, createMockInventoryRemote())
 
             remote:Fire({
                 active = {
@@ -123,6 +165,37 @@ return function()
             local frames = controller:GetView():GetQuestFrames()
             expect(#frames).to.equal(1)
             expect(frames[1].Name).to.equal("gather_herbs")
+
+            controller:Destroy()
+        end)
+
+        it("fires an inventory request when the abandon button is activated", function()
+            local remote = createMockRemote()
+            local inventoryRemote = createMockInventoryRemote()
+            local controller = QuestHudController.new(remote, playerGui, inventoryRemote)
+
+            remote:Fire({
+                active = {
+                    slay_goblins = {
+                        id = "slay_goblins",
+                        progress = 0,
+                        goal = 3,
+                    },
+                },
+            })
+
+            local frames = controller:GetView():GetQuestFrames()
+            expect(#frames).to.equal(1)
+
+            local abandonButton = frames[1]:FindFirstChild("AbandonButton")
+            expect(abandonButton).to.be.ok()
+
+            abandonButton:Activate()
+
+            expect(#inventoryRemote.calls).to.equal(1)
+            expect(inventoryRemote.calls[1]).to.be.a("table")
+            expect(inventoryRemote.calls[1].action).to.equal("abandonQuest")
+            expect(inventoryRemote.calls[1].questId).to.equal("slay_goblins")
 
             controller:Destroy()
         end)
