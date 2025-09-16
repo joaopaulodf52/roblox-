@@ -39,6 +39,7 @@ local Remotes = {
     CraftingRequest = resolveRemote("RemoteEvent", "CraftingRequest"),
     ShopOpen = resolveRemote("RemoteEvent", "ShopOpen"),
     ShopPurchase = resolveRemote("RemoteEvent", "ShopPurchase"),
+    AchievementUpdated = resolveRemote("RemoteEvent", "AchievementUpdated"),
 }
 
 return Remotes

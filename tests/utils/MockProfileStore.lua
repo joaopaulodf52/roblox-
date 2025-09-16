@@ -73,6 +73,18 @@ function MockProfileStore:_createProfile()
             },
             version = 1,
         },
+        achievements = {
+            version = 1,
+            unlocked = {},
+            progress = {},
+            counters = {
+                experience = 0,
+                kills = {
+                    total = 0,
+                    byType = {},
+                },
+            },
+        },
     }
 end
 

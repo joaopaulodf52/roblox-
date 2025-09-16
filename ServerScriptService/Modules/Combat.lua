@@ -58,6 +58,7 @@ function Combat.new(player, characterStats, inventory, questManager)
     self.characterStats = characterStats
     self.inventory = inventory
     self.questManager = questManager
+    self.achievementManager = nil
     return self
 end
 
@@ -123,6 +124,10 @@ function Combat:OnEnemyDefeated(enemyType)
     if self.questManager and enemyType then
         self.questManager:RegisterKill(enemyType)
     end
+
+    if self.achievementManager then
+        self.achievementManager:OnEnemyDefeated(enemyType)
+    end
 end
 
 function Combat:HandleLootDrop(itemId, quantity)
@@ -131,6 +136,16 @@ function Combat:HandleLootDrop(itemId, quantity)
     end
 
     self.inventory:AddItem(itemId, quantity or 1)
+end
+
+function Combat:BindAchievementManager(manager)
+    self.achievementManager = manager
+end
+
+function Combat:UnbindAchievementManager(manager)
+    if manager == nil or manager == self.achievementManager then
+        self.achievementManager = nil
+    end
 end
 
 return Combat

@@ -11,6 +11,7 @@ local Combat = require(script.Modules.Combat)
 local Skills = require(script.Modules.Skills)
 local Crafting = require(script.Modules.Crafting)
 local ShopManager = require(script.Modules.ShopManager)
+local AchievementManager = require(script.Modules.AchievementManager)
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
 local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
@@ -267,6 +268,7 @@ local function createPlayerControllers(player)
     local skills = Skills.new(player, stats)
     local crafting = Crafting.new(player, inventory)
     local shop = ShopManager.new(player, stats, inventory)
+    local achievements = AchievementManager.new(player, stats, inventory, combat)
 
     controllers[player] = {
         stats = stats,
@@ -276,6 +278,7 @@ local function createPlayerControllers(player)
         skills = skills,
         crafting = crafting,
         shop = shop,
+        achievements = achievements,
     }
 end
 
@@ -286,6 +289,9 @@ local function removePlayerControllers(player)
         return
     end
 
+    if controller.achievements then
+        controller.achievements:Destroy()
+    end
     controller.stats:Destroy()
     controller.inventory:Destroy()
     controller.quests:Destroy()

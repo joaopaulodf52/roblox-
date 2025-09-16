@@ -104,6 +104,25 @@ local function ensureCrafting(crafting)
     return crafting
 end
 
+local function ensureAchievements(achievements)
+    achievements = achievements or {}
+    achievements.version = achievements.version or 1
+    achievements.unlocked = achievements.unlocked or {}
+    achievements.progress = achievements.progress or {}
+
+    local counters = achievements.counters or {}
+    counters.experience = counters.experience or 0
+
+    local kills = counters.kills or {}
+    kills.total = kills.total or 0
+    kills.byType = kills.byType or {}
+    counters.kills = kills
+
+    achievements.counters = counters
+
+    return achievements
+end
+
 local function ensureProfileStructure(profile)
     profile = profile or {}
     profile.stats = profile.stats or cloneDefaults()
@@ -111,6 +130,7 @@ local function ensureProfileStructure(profile)
     profile.quests = ensureQuests(profile.quests)
     profile.skills = ensureSkills(profile.skills)
     profile.crafting = ensureCrafting(profile.crafting)
+    profile.achievements = ensureAchievements(profile.achievements)
     profile.currentMap = ensureCurrentMap(profile.currentMap)
     return profile
 end

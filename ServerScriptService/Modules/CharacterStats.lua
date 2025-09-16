@@ -54,6 +54,7 @@ function CharacterStats.new(player)
     self._temporaryModifiers = {}
     self._temporaryModifierCounter = 0
     self._destroyed = false
+    self._achievementManager = nil
     self:_ensureBounds()
     self:_pushUpdate()
     return self
@@ -107,6 +108,9 @@ function CharacterStats:AddExperience(amount)
     end
 
     self.stats.experience = self.stats.experience + amount
+    if self._achievementManager then
+        self._achievementManager:OnExperienceGained(amount)
+    end
     local leveled = self:_levelUpIfNeeded()
     self:_save()
     if not leveled then
@@ -340,7 +344,18 @@ end
 function CharacterStats:Destroy()
     self._destroyed = true
     self._temporaryModifiers = nil
+    self._achievementManager = nil
     PlayerProfileStore.Save(self.player)
+end
+
+function CharacterStats:BindAchievementManager(manager)
+    self._achievementManager = manager
+end
+
+function CharacterStats:UnbindAchievementManager(manager)
+    if manager == nil or manager == self._achievementManager then
+        self._achievementManager = nil
+    end
 end
 
 return CharacterStats
