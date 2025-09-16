@@ -24,6 +24,33 @@ local function countEntries(dictionary)
     return count
 end
 
+local function applyRewardBundle(self, rewardData)
+    if not rewardData then
+        return
+    end
+
+    if rewardData.experience then
+        self.characterStats:AddExperience(rewardData.experience)
+    end
+    if rewardData.gold then
+        self.characterStats:AddGold(rewardData.gold)
+    end
+    if rewardData.items then
+        for itemId, quantity in pairs(rewardData.items) do
+            self.inventory:AddItem(itemId, quantity, { notifyQuest = false })
+        end
+    end
+end
+
+local function resolvePlayerClass(characterStats)
+    if characterStats.GetClass then
+        return characterStats:GetClass()
+    end
+
+    local stats = characterStats:GetStats()
+    return stats.class
+end
+
 function QuestManager.new(player, characterStats, inventory)
     local self = setmetatable({}, QuestManager)
     self.player = player
@@ -107,16 +134,21 @@ end
 
 function QuestManager:_grantRewards(definition)
     local reward = definition.reward or {}
-    if reward.experience then
-        self.characterStats:AddExperience(reward.experience)
+    applyRewardBundle(self, reward)
+
+    local classRewards = reward.classRewards or reward.byClass
+    if not classRewards then
+        return
     end
-    if reward.gold then
-        self.characterStats:AddGold(reward.gold)
+
+    local playerClass = resolvePlayerClass(self.characterStats)
+    if type(playerClass) == "string" then
+        playerClass = string.lower(playerClass)
     end
-    if reward.items then
-        for itemId, quantity in pairs(reward.items) do
-            self.inventory:AddItem(itemId, quantity, { notifyQuest = false })
-        end
+
+    local classReward = classRewards and classRewards[playerClass]
+    if classReward then
+        applyRewardBundle(self, classReward)
     end
 end
 

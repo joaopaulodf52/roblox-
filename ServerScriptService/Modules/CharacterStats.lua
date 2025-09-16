@@ -11,6 +11,41 @@ local function clamp(value, minValue, maxValue)
     return math.clamp(value, minValue, maxValue)
 end
 
+local function getDefaultClass()
+    local classes = GameConfig.Classes
+    if classes then
+        local defaultClass = classes.default
+        if type(defaultClass) == "string" and classes[string.lower(defaultClass)] then
+            return string.lower(defaultClass)
+        end
+        for classId, definition in pairs(classes) do
+            if classId ~= "default" and type(definition) == "table" then
+                return classId
+            end
+        end
+    end
+
+    if GameConfig.DefaultStats and GameConfig.DefaultStats.class then
+        return string.lower(GameConfig.DefaultStats.class)
+    end
+
+    return "guerreiro"
+end
+
+local function normalizeClass(className)
+    if type(className) ~= "string" then
+        return nil
+    end
+
+    local normalized = string.lower(className)
+    local classes = GameConfig.Classes
+    if classes and type(classes[normalized]) == "table" then
+        return normalized
+    end
+
+    return nil
+end
+
 function CharacterStats.new(player)
     local self = setmetatable({}, CharacterStats)
     self.player = player
@@ -29,6 +64,12 @@ function CharacterStats:_ensureBounds()
     self.stats.attack = self.stats.attack or GameConfig.DefaultStats.attack
     self.stats.defense = self.stats.defense or GameConfig.DefaultStats.defense
     self.stats.gold = self.stats.gold or GameConfig.DefaultStats.gold
+
+    local currentClass = normalizeClass(self.stats.class)
+    if not currentClass then
+        currentClass = getDefaultClass()
+    end
+    self.stats.class = currentClass
 end
 
 function CharacterStats:_experienceToNextLevel()
@@ -141,6 +182,26 @@ function CharacterStats:RestoreMana(amount)
     self:_save()
     self:_pushUpdate()
     return self.stats.mana - previous
+end
+
+function CharacterStats:GetClass()
+    return self.stats.class
+end
+
+function CharacterStats:SetClass(className)
+    local normalized = normalizeClass(className)
+    if not normalized then
+        return false, "Classe desconhecida"
+    end
+
+    if self.stats.class == normalized then
+        return true
+    end
+
+    self.stats.class = normalized
+    self:_save()
+    self:_pushUpdate()
+    return true
 end
 
 function CharacterStats:ApplyAttributeModifier(attribute, delta)
