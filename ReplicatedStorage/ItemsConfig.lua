@@ -359,6 +359,28 @@ local ItemsConfig = {
             defense = 20,
         },
     },
+    guardian_greaves = {
+        id = "guardian_greaves",
+        name = "Grevas do Guardião",
+        type = "equipment",
+        slot = "boots",
+        description = "Grevas reforçadas que mantêm os guardiões firmes mesmo sob grande pressão.",
+        attributes = {
+            defense = 14,
+            knockbackResistChance = 0.35,
+        },
+    },
+    sentinel_helm = {
+        id = "sentinel_helm",
+        name = "Elmo do Sentinela",
+        type = "equipment",
+        slot = "helmet",
+        description = "Elmo venerado pelos sentinelas que vigiam a cidadela renascida.",
+        attributes = {
+            defense = 12,
+            maxHealth = 120,
+        },
+    },
     royal_arrowheads = {
         id = "royal_arrowheads",
         name = "Pontas Reais",
@@ -439,6 +461,22 @@ ItemsConfig.recipes = {
             guardian_blade = 1,
             dragonbane_arrows = 2,
             forja_compass = 1,
+        },
+    },
+    guardian_greaves = {
+        result = "guardian_greaves",
+        ingredients = {
+            cristal_vulcanico = 4,
+            forja_compass = 1,
+            essencia_alquimica = 2,
+        },
+    },
+    sentinel_helm = {
+        result = "sentinel_helm",
+        ingredients = {
+            forja_compass = 1,
+            cristal_vulcanico = 2,
+            ritual_catalyst = 1,
         },
     },
 }

@@ -68,6 +68,15 @@ local ShopConfig = {
                     minLevel = 2,
                 },
             },
+            {
+                itemId = "guardian_greaves",
+                price = 360,
+                quantity = 1,
+                requirements = {
+                    minLevel = 5,
+                    classes = { "guerreiro" },
+                },
+            },
         },
     },
 }
