@@ -402,5 +402,46 @@ local ItemsConfig = {
     },
 }
 
+ItemsConfig.recipes = {
+    potion_small = {
+        result = "potion_small",
+        ingredients = {
+            maca_vermelha = 2,
+            essencia_alquimica = 1,
+        },
+    },
+    guardian_blade = {
+        result = "guardian_blade",
+        ingredients = {
+            training_blade = 1,
+            growth_components = 2,
+            essencia_alquimica = 1,
+        },
+    },
+    hunters_arrows = {
+        result = "hunters_arrows",
+        output = 5,
+        ingredients = {
+            training_quiver = 1,
+            precision_string = 1,
+        },
+    },
+    molten_gauntlets = {
+        result = "molten_gauntlets",
+        ingredients = {
+            cristal_vulcanico = 3,
+            essencia_alquimica = 2,
+        },
+    },
+    legendary_blade = {
+        result = "legendary_blade",
+        ingredients = {
+            guardian_blade = 1,
+            dragonbane_arrows = 2,
+            forja_compass = 1,
+        },
+    },
+}
+
 return ItemsConfig
 

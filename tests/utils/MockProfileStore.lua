@@ -65,6 +65,14 @@ function MockProfileStore:_createProfile()
             hotbar = {},
             version = 1,
         },
+        crafting = {
+            unlocked = {},
+            statistics = {
+                totalCrafted = 0,
+                byRecipe = {},
+            },
+            version = 1,
+        },
     }
 end
 

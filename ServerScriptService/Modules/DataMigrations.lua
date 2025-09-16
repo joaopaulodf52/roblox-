@@ -141,6 +141,42 @@ local function registerMigrations()
             schemas.profile = profile
         end,
     })
+
+    DataStoreManager:RegisterMigration({
+        id = "20240506_profile_crafting_structure",
+        order = 6,
+        dependencies = { "20240501_profile_schema_v1" },
+        run = function(state)
+            local schemas = ensureSchemaContainer(state)
+            local profile = schemas.profile or {}
+            local crafting = profile.crafting or {}
+
+            if typeof(crafting.version) == "number" and crafting.version >= 1 then
+                profile.crafting = crafting
+                schemas.profile = profile
+                return
+            end
+
+            crafting.version = 1
+            crafting.fields = {
+                "unlocked",
+                "statistics",
+            }
+
+            local statistics = crafting.statistics or {}
+            statistics.fields = statistics.fields or {
+                "totalCrafted",
+                "byRecipe",
+            }
+            statistics.totalCrafted = statistics.totalCrafted or 0
+            statistics.byRecipe = statistics.byRecipe or {}
+
+            crafting.statistics = statistics
+
+            profile.crafting = crafting
+            schemas.profile = profile
+        end,
+    })
 end
 
 function DataMigrations.Register()
