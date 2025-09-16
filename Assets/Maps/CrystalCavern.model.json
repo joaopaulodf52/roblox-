@@ -1,6 +1,6 @@
 {
   "className": "Model",
-  "Name": "CrystalCavern",
+  "NeedsPivotMigration": false,
   "Floor": {
     "className": "Part",
     "Name": "Floor",
