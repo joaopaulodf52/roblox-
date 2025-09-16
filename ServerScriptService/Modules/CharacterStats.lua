@@ -11,6 +11,26 @@ local function clamp(value, minValue, maxValue)
     return math.clamp(value, minValue, maxValue)
 end
 
+local function clampResistance(value)
+    if type(value) ~= "number" or value ~= value then
+        return 0
+    end
+
+    return math.clamp(value, -0.9, 0.9)
+end
+
+local function sanitizeResistances(resistances)
+    local sanitized = {}
+
+    if type(resistances) == "table" then
+        for damageType, value in pairs(resistances) do
+            sanitized[damageType] = clampResistance(value)
+        end
+    end
+
+    return sanitized
+end
+
 local function getDefaultClass()
     local classes = GameConfig.Classes
     if classes then
@@ -68,6 +88,25 @@ function CharacterStats:_ensureBounds()
     self.stats.attack = self.stats.attack or GameConfig.DefaultStats.attack
     self.stats.defense = self.stats.defense or GameConfig.DefaultStats.defense
     self.stats.gold = self.stats.gold or GameConfig.DefaultStats.gold
+
+    if type(self.stats.resistances) ~= "table" then
+        self.stats.resistances = {}
+    end
+
+    if type(GameConfig.DefaultStats.resistances) == "table" then
+        for damageType, value in pairs(GameConfig.DefaultStats.resistances) do
+            if self.stats.resistances[damageType] == nil then
+                self.stats.resistances[damageType] = value
+            end
+        end
+    end
+
+    self.stats.resistances = sanitizeResistances(self.stats.resistances)
+
+    self.stats.dodgeChance = clamp(self.stats.dodgeChance or GameConfig.DefaultStats.dodgeChance or 0, 0, 0.95)
+    self.stats.blockChance = clamp(self.stats.blockChance or GameConfig.DefaultStats.blockChance or 0, 0, 0.95)
+    local defaultBlockReduction = GameConfig.DefaultStats.blockReduction or 0.5
+    self.stats.blockReduction = clamp(self.stats.blockReduction or defaultBlockReduction, 0, 1)
 
     local currentClass = normalizeClass(self.stats.class)
     if not currentClass then
@@ -297,6 +336,14 @@ end
 
 function CharacterStats:GetStats()
     local statsCopy = table.clone(self.stats)
+
+    if type(statsCopy.resistances) == "table" then
+        local resistancesCopy = {}
+        for damageType, value in pairs(statsCopy.resistances) do
+            resistancesCopy[damageType] = value
+        end
+        statsCopy.resistances = resistancesCopy
+    end
 
     if self._temporaryModifiers then
         for attribute, container in pairs(self._temporaryModifiers) do

@@ -475,7 +475,7 @@ local function createPlayerControllers(player)
     local quests = QuestManager.new(player, stats, inventory)
     inventory:BindQuestManager(quests)
     local combat = Combat.new(player, stats, inventory, quests)
-    local skills = Skills.new(player, stats)
+    local skills = Skills.new(player, stats, combat)
     local crafting = Crafting.new(player, inventory)
     local shop = ShopManager.new(player, stats, inventory)
     local achievements = AchievementManager.new(player, stats, inventory, combat, quests)
@@ -750,13 +750,74 @@ local function extractSkillId(payload)
     return payload
 end
 
-local function validateSkillRequest(payload)
+local function sanitizeVector3(value)
+    if typeof(value) ~= "Vector3" then
+        return nil
+    end
+
+    if value.X ~= value.X or value.Y ~= value.Y or value.Z ~= value.Z then
+        return nil
+    end
+
+    local maxMagnitude = 1_000_000
+    if math.abs(value.X) > maxMagnitude or math.abs(value.Y) > maxMagnitude or math.abs(value.Z) > maxMagnitude then
+        return nil
+    end
+
+    return value
+end
+
+local function isCharacterStatsController(value)
+    return type(value) == "table" and type(value.ApplyDamage) == "function" and type(value.GetStats) == "function"
+end
+
+local function validateSkillRequest(player, payload)
     local skillId = extractSkillId(payload)
     if not isValidString(skillId) then
         return false, nil, "skillId inválido"
     end
 
-    return true, skillId
+    local sanitized = {
+        skillId = skillId,
+    }
+
+    if type(payload) == "table" then
+        local targetCandidate = payload.target or payload.targetPlayer
+        if typeof(targetCandidate) == "Instance" and targetCandidate:IsA("Player") then
+            sanitized.targetPlayer = targetCandidate
+        elseif type(targetCandidate) == "number" then
+            local targetPlayer = Players:GetPlayerByUserId(targetCandidate)
+            if targetPlayer then
+                sanitized.targetPlayer = targetPlayer
+            end
+        end
+
+        local radius = payload.radius or payload.areaRadius
+        if radius ~= nil then
+            local numericRadius = tonumber(radius)
+            if numericRadius and numericRadius > 0 then
+                sanitized.radius = math.clamp(numericRadius, 0, 512)
+            end
+        end
+
+        local position = payload.position or payload.location or payload.origin
+        position = sanitizeVector3(position)
+        if position then
+            sanitized.position = position
+        end
+
+        if payload.direction then
+            local direction = sanitizeVector3(payload.direction)
+            if direction then
+                local magnitude = direction.Magnitude
+                if magnitude > 0 then
+                    sanitized.direction = direction / magnitude
+                end
+            end
+        end
+    end
+
+    return true, sanitized
 end
 
 local function resolveLeaderboardRequestLimit(payload)
@@ -850,13 +911,68 @@ Remotes.SkillRequest.OnServerEvent:Connect(function(player, payload)
         return
     end
 
-    local isValid, skillId, reason = validateSkillRequest(payload)
+    local isValid, sanitized, reason = validateSkillRequest(player, payload)
     if not isValid then
         logInvalidRequest(player, "SkillRequest", reason or "dados inválidos")
         return
     end
 
-    local success, message, detail = controller.skills:UseSkill(skillId)
+    local context = sanitized or {}
+    local skillId = context.skillId
+
+    local targetStats
+    local targetPlayer = context.targetPlayer
+    if targetPlayer == player then
+        targetStats = controller.stats
+    elseif typeof(targetPlayer) == "Instance" and targetPlayer:IsA("Player") then
+        local targetController = controllers[targetPlayer]
+        if targetController and targetController.stats and not targetController.stats._destroyed then
+            targetStats = targetController.stats
+        else
+            context.targetPlayer = nil
+        end
+    else
+        context.targetPlayer = nil
+    end
+
+    local resolvedTargets = {}
+    local seenTargets = {}
+
+    local function addTarget(statsController)
+        if isCharacterStatsController(statsController) and not statsController._destroyed and not seenTargets[statsController] then
+            table.insert(resolvedTargets, statsController)
+            seenTargets[statsController] = true
+        end
+    end
+
+    if targetStats then
+        addTarget(targetStats)
+    end
+
+    if context.radius and context.position then
+        for _, otherPlayer in ipairs(Players:GetPlayers()) do
+            local otherController = controllers[otherPlayer]
+            local statsController = otherController and otherController.stats
+            if statsController and not statsController._destroyed then
+                local character = otherPlayer.Character
+                local root = character and character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local distance = (root.Position - context.position).Magnitude
+                    if distance <= context.radius then
+                        addTarget(statsController)
+                    end
+                end
+            end
+        end
+    end
+
+    context.target = resolvedTargets[1]
+    context.targetStats = context.target
+    context.targets = resolvedTargets
+    context.casterStats = controller.stats
+    context.casterPlayer = player
+
+    local success, message, detail = controller.skills:UseSkill(skillId, context)
     if not success then
         local code = detail and detail.code
         if code ~= "cooldown" and code ~= "insufficient_mana" then

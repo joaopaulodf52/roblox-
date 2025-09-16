@@ -5,6 +5,7 @@ return function()
     local SkillsConfig = require(ReplicatedStorage:WaitForChild("SkillsConfig"))
     local Skills = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("Skills"))
     local CharacterStats = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("CharacterStats"))
+    local Combat = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("Combat"))
 
     local MockProfileStore = require(script.Parent.Parent.utils.MockProfileStore)
     local TestPlayers = require(script.Parent.Parent.utils.TestPlayers)
@@ -22,6 +23,7 @@ return function()
     end
 
     local originalPowerStrike = deepCopy(SkillsConfig.guerreiro.power_strike)
+    local originalExplosiveArrow = deepCopy(SkillsConfig.arqueiro.explosive_arrow)
 
     local function restorePowerStrike()
         local skill = SkillsConfig.guerreiro.power_strike
@@ -29,6 +31,16 @@ return function()
             skill[key] = nil
         end
         for key, value in pairs(originalPowerStrike) do
+            skill[key] = deepCopy(value)
+        end
+    end
+
+    local function restoreExplosiveArrow()
+        local skill = SkillsConfig.arqueiro.explosive_arrow
+        for key in pairs(skill) do
+            skill[key] = nil
+        end
+        for key, value in pairs(originalExplosiveArrow) do
             skill[key] = deepCopy(value)
         end
     end
@@ -45,12 +57,14 @@ return function()
         afterAll(function()
             Skills._resetTimeProvider()
             restorePowerStrike()
+            restoreExplosiveArrow()
             mockStore:restore()
         end)
 
         beforeEach(function()
             mockStore:reset()
             restorePowerStrike()
+            restoreExplosiveArrow()
 
             local powerStrike = SkillsConfig.guerreiro.power_strike
             powerStrike.cooldown = 0.2
@@ -73,6 +87,7 @@ return function()
                 player = nil
             end
             restorePowerStrike()
+            restoreExplosiveArrow()
             Skills._resetTimeProvider()
         end)
 
@@ -108,6 +123,56 @@ return function()
 
             skillsController:Destroy()
             statsController:Destroy()
+        end)
+
+        it("aplica dano ofensivo e efeitos adicionais", function()
+            local attacker = TestPlayers.create("ArcherSkillUser")
+            local defender = TestPlayers.create("ArcherSkillTarget")
+
+            local attackerStats = CharacterStats.new(attacker)
+            local defenderStats = CharacterStats.new(defender)
+            defenderStats.stats.health = 150
+
+            local combatController = Combat.new(attacker, attackerStats)
+            local skillsController = Skills.new(attacker, attackerStats, combatController)
+
+            local explosiveArrow = SkillsConfig.arqueiro.explosive_arrow
+            explosiveArrow.cooldown = 0.1
+            for _, effect in ipairs(explosiveArrow.effects) do
+                if effect.type == "dot" then
+                    effect.interval = 0.05
+                    effect.ticks = 2
+                    effect.amount = 4
+                end
+            end
+
+            local initialHealth = defenderStats:GetStats().health
+
+            local context = {
+                targetPlayer = defender,
+                target = defenderStats,
+                targetStats = defenderStats,
+                targets = { defenderStats },
+                position = Vector3.new(),
+                radius = 0,
+            }
+
+            local success = skillsController:UseSkill("explosive_arrow", context)
+            expect(success).to.equal(true)
+
+            local impactHealth = defenderStats:GetStats().health
+            expect(impactHealth < initialHealth).to.equal(true)
+
+            task.wait(0.2)
+
+            local finalHealth = defenderStats:GetStats().health
+            expect(finalHealth < impactHealth).to.equal(true)
+
+            skillsController:Destroy()
+            attackerStats:Destroy()
+            defenderStats:Destroy()
+            TestPlayers.destroy(attacker)
+            TestPlayers.destroy(defender)
         end)
     end)
 end

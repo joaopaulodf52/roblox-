@@ -51,6 +51,34 @@ local SkillsConfig = {
                 },
             },
         },
+        cleaving_smash = {
+            id = "cleaving_smash",
+            name = "Impacto Cindente",
+            description = "Golpe em arco que quebra guardas inimigas e abre espaço para aliados.",
+            manaCost = 18,
+            cooldown = 12,
+            effects = {
+                {
+                    type = "damage",
+                    target = "enemy",
+                    amount = 22,
+                    scaling = {
+                        attack = 0.6,
+                    },
+                    damageType = "physical",
+                    includeWeaponDamage = true,
+                    minimumDamage = 8,
+                },
+                {
+                    type = "crowdControl",
+                    target = "enemy",
+                    attribute = "defense",
+                    amount = -6,
+                    duration = 4,
+                    tag = "armor_break",
+                },
+            },
+        },
     },
     arqueiro = {
         precise_arrow = {
@@ -102,6 +130,32 @@ local SkillsConfig = {
                 },
             },
         },
+        explosive_arrow = {
+            id = "explosive_arrow",
+            name = "Flecha Explosiva",
+            description = "Projétil incendiário que causa dano no impacto e deixa brasas no terreno.",
+            manaCost = 16,
+            cooldown = 10,
+            effects = {
+                {
+                    type = "damage",
+                    target = "enemy",
+                    amount = 18,
+                    scaling = {
+                        attack = 0.5,
+                    },
+                    damageType = "fire",
+                },
+                {
+                    type = "dot",
+                    target = "area",
+                    amount = 6,
+                    ticks = 3,
+                    interval = 1.5,
+                    damageType = "fire",
+                },
+            },
+        },
     },
     mago = {
         arcane_focus = {
@@ -148,6 +202,46 @@ local SkillsConfig = {
                 {
                     type = "mana",
                     amount = 10,
+                },
+            },
+        },
+        frost_nova = {
+            id = "frost_nova",
+            name = "Nova Gélida",
+            description = "Libera uma onda de frio que causa dano e enfraquece inimigos próximos enquanto protege aliados.",
+            manaCost = 20,
+            cooldown = 14,
+            effects = {
+                {
+                    type = "damage",
+                    target = "area",
+                    amount = 15,
+                    damageType = "ice",
+                    canBeDodged = false,
+                    canBeBlocked = false,
+                    minimumDamage = 5,
+                },
+                {
+                    type = "crowdControl",
+                    target = "area",
+                    attribute = "defense",
+                    amount = -4,
+                    duration = 3,
+                },
+                {
+                    type = "aura",
+                    target = "allies",
+                    duration = 6,
+                    modifiers = {
+                        {
+                            attribute = "defense",
+                            amount = 3,
+                        },
+                        {
+                            attribute = "maxMana",
+                            amount = 5,
+                        },
+                    },
                 },
             },
         },
