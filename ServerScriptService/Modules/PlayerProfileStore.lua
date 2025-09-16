@@ -83,11 +83,20 @@ local function ensureQuests(quests)
     return quests
 end
 
+local function ensureSkills(skills)
+    skills = skills or {}
+    skills.unlocked = skills.unlocked or {}
+    skills.hotbar = skills.hotbar or {}
+    skills.version = skills.version or 1
+    return skills
+end
+
 local function ensureProfileStructure(profile)
     profile = profile or {}
     profile.stats = profile.stats or cloneDefaults()
     profile.inventory = ensureInventory(profile.inventory)
     profile.quests = ensureQuests(profile.quests)
+    profile.skills = ensureSkills(profile.skills)
     profile.currentMap = ensureCurrentMap(profile.currentMap)
     return profile
 end

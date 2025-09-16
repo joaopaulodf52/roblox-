@@ -34,6 +34,7 @@ local Remotes = {
     QuestUpdated = resolveRemote("RemoteEvent", "QuestUpdated"),
     CombatNotification = resolveRemote("RemoteEvent", "CombatNotification"),
     CombatRequest = resolveRemote("RemoteEvent", "CombatRequest"),
+    SkillRequest = resolveRemote("RemoteEvent", "SkillRequest"),
     InventoryRequest = resolveRemote("RemoteEvent", "InventoryRequest"),
 }
 

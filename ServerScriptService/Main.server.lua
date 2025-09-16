@@ -8,6 +8,7 @@ local CharacterStats = require(script.Modules.CharacterStats)
 local Inventory = require(script.Modules.Inventory)
 local QuestManager = require(script.Modules.QuestManager)
 local Combat = require(script.Modules.Combat)
+local Skills = require(script.Modules.Skills)
 local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local ItemsConfig = require(ReplicatedStorage:WaitForChild("ItemsConfig"))
 local QuestConfig = require(ReplicatedStorage:WaitForChild("QuestConfig"))
@@ -34,9 +35,11 @@ MapManager:EnsureLoaded(MapConfig.defaultMap)
 local RATE_LIMIT_WINDOW = 1
 local MAX_INVENTORY_REQUESTS_PER_WINDOW = 8
 local MAX_COMBAT_REQUESTS_PER_WINDOW = 12
+local MAX_SKILL_REQUESTS_PER_WINDOW = 15
 
 local inventoryRequestCounters = {}
 local combatRequestCounters = {}
+local skillRequestCounters = {}
 
 local function logInvalidRequest(player, requestType, reason)
     local playerName = player and player.Name or "Desconhecido"
@@ -51,6 +54,7 @@ local function clearRateLimitState(player)
     local userId = player.UserId
     inventoryRequestCounters[userId] = nil
     combatRequestCounters[userId] = nil
+    skillRequestCounters[userId] = nil
 end
 
 local function isRateLimited(counter, player, maxRequests)
@@ -181,12 +185,14 @@ local function createPlayerControllers(player)
     local quests = QuestManager.new(player, stats, inventory)
     inventory:BindQuestManager(quests)
     local combat = Combat.new(player, stats, inventory, quests)
+    local skills = Skills.new(player, stats)
 
     controllers[player] = {
         stats = stats,
         inventory = inventory,
         quests = quests,
         combat = combat,
+        skills = skills,
     }
 end
 
@@ -201,6 +207,9 @@ local function removePlayerControllers(player)
     controller.inventory:Destroy()
     controller.quests:Destroy()
     controller.combat:Destroy()
+    if controller.skills then
+        controller.skills:Destroy()
+    end
     controllers[player] = nil
     PlayerProfileStore.Save(player)
     PlayerProfileStore.Clear(player)
@@ -282,6 +291,49 @@ Remotes.CombatRequest.OnServerEvent:Connect(function(player, targetPlayer, weapo
         local targetController = controllers[sanitizedTarget]
         if targetController then
             controller.combat:AttackTarget(targetController.stats, sanitizedWeapon)
+        end
+    end
+end)
+
+local function extractSkillId(payload)
+    if type(payload) == "table" then
+        return payload.skillId or payload.id
+    end
+
+    return payload
+end
+
+local function validateSkillRequest(payload)
+    local skillId = extractSkillId(payload)
+    if not isValidString(skillId) then
+        return false, nil, "skillId inválido"
+    end
+
+    return true, skillId
+end
+
+Remotes.SkillRequest.OnServerEvent:Connect(function(player, payload)
+    local controller = controllers[player]
+    if not controller or not controller.skills then
+        return
+    end
+
+    if isRateLimited(skillRequestCounters, player, MAX_SKILL_REQUESTS_PER_WINDOW) then
+        logInvalidRequest(player, "SkillRequest", "limite de requisições excedido")
+        return
+    end
+
+    local isValid, skillId, reason = validateSkillRequest(payload)
+    if not isValid then
+        logInvalidRequest(player, "SkillRequest", reason or "dados inválidos")
+        return
+    end
+
+    local success, message, detail = controller.skills:UseSkill(skillId)
+    if not success then
+        local code = detail and detail.code
+        if code ~= "cooldown" and code ~= "insufficient_mana" then
+            logInvalidRequest(player, "SkillRequest", message or "falha ao executar habilidade")
         end
     end
 end)

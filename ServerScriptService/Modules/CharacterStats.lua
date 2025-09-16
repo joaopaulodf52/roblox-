@@ -51,6 +51,9 @@ function CharacterStats.new(player)
     self.player = player
     self.profile = PlayerProfileStore.Load(player)
     self.stats = self.profile.stats
+    self._temporaryModifiers = {}
+    self._temporaryModifierCounter = 0
+    self._destroyed = false
     self:_ensureBounds()
     self:_pushUpdate()
     return self
@@ -218,8 +221,98 @@ function CharacterStats:ApplyAttributeModifier(attribute, delta)
     self:_pushUpdate()
 end
 
+function CharacterStats:_removeTemporaryModifier(attribute, modifierId)
+    if self._destroyed then
+        return
+    end
+
+    local container = self._temporaryModifiers and self._temporaryModifiers[attribute]
+    if not container then
+        return
+    end
+
+    local amount = container.entries[modifierId]
+    if not amount then
+        return
+    end
+
+    container.entries[modifierId] = nil
+    container.total = (container.total or 0) - amount
+
+    if math.abs(container.total) < 1e-4 then
+        container.total = 0
+    end
+
+    if next(container.entries) == nil then
+        self._temporaryModifiers[attribute] = nil
+    end
+
+    self:_pushUpdate()
+end
+
+function CharacterStats:ApplyTemporaryModifier(attribute, delta, duration)
+    if self._destroyed then
+        return false
+    end
+
+    if type(attribute) ~= "string" or attribute == "" then
+        return false
+    end
+
+    if type(delta) ~= "number" or delta == 0 or delta ~= delta then
+        return false
+    end
+
+    if type(duration) ~= "number" or duration <= 0 then
+        return false
+    end
+
+    self._temporaryModifierCounter = self._temporaryModifierCounter + 1
+    local modifierId = self._temporaryModifierCounter
+
+    local container = self._temporaryModifiers[attribute]
+    if not container then
+        container = {
+            total = 0,
+            entries = {},
+        }
+        self._temporaryModifiers[attribute] = container
+    end
+
+    container.entries[modifierId] = delta
+    container.total = (container.total or 0) + delta
+
+    self:_pushUpdate()
+
+    task.delay(duration, function()
+        self:_removeTemporaryModifier(attribute, modifierId)
+    end)
+
+    return true, modifierId
+end
+
 function CharacterStats:GetStats()
-    return table.clone(self.stats)
+    local statsCopy = table.clone(self.stats)
+
+    if self._temporaryModifiers then
+        for attribute, container in pairs(self._temporaryModifiers) do
+            local total = container.total
+            if total and total ~= 0 then
+                local current = statsCopy[attribute]
+                if type(current) ~= "number" then
+                    current = current or 0
+                end
+                statsCopy[attribute] = current + total
+            end
+        end
+    end
+
+    statsCopy.maxHealth = math.max(statsCopy.maxHealth or GameConfig.DefaultStats.maxHealth, 1)
+    statsCopy.maxMana = math.max(statsCopy.maxMana or GameConfig.DefaultStats.maxMana, 0)
+    statsCopy.health = clamp(statsCopy.health, 0, statsCopy.maxHealth)
+    statsCopy.mana = clamp(statsCopy.mana, 0, statsCopy.maxMana)
+
+    return statsCopy
 end
 
 function CharacterStats:_save()
@@ -230,6 +323,10 @@ function CharacterStats:_save()
 end
 
 function CharacterStats:_pushUpdate()
+    if self._destroyed then
+        return
+    end
+
     Remotes.StatsUpdated:FireClient(self.player, self:GetStats())
 end
 
@@ -241,6 +338,8 @@ function CharacterStats:OnDefeated()
 end
 
 function CharacterStats:Destroy()
+    self._destroyed = true
+    self._temporaryModifiers = nil
     PlayerProfileStore.Save(self.player)
 end
 

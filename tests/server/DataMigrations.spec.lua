@@ -81,6 +81,10 @@ return function()
             expect(profileSchema.quests.states).to.be.ok()
 
             expect(MapConfig[profileSchema.stats.defaults.currentMap]).to.be.ok()
+
+            expect(profileSchema.skills).to.be.ok()
+            expect(profileSchema.skills.version).to.equal(1)
+            expect(profileSchema.skills.fields).to.be.ok()
         end)
 
         it("persists migration state between runs", function()
