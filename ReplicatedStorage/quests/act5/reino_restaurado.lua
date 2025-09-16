@@ -35,6 +35,7 @@ local quest = {
             guerreiro = {
                 items = {
                     royal_guard_plate = 1,
+                    sentinel_helm = 1,
                 },
             },
             arqueiro = {
