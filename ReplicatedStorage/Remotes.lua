@@ -37,6 +37,7 @@ local Remotes = {
     SkillRequest = resolveRemote("RemoteEvent", "SkillRequest"),
     InventoryRequest = resolveRemote("RemoteEvent", "InventoryRequest"),
     CraftingRequest = resolveRemote("RemoteEvent", "CraftingRequest"),
+    MapTravelRequest = resolveRemote("RemoteEvent", "MapTravelRequest"),
     ShopOpen = resolveRemote("RemoteEvent", "ShopOpen"),
     ShopPurchase = resolveRemote("RemoteEvent", "ShopPurchase"),
     AchievementUpdated = resolveRemote("RemoteEvent", "AchievementUpdated"),

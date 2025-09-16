@@ -42,6 +42,7 @@ local MAX_SKILL_REQUESTS_PER_WINDOW = 15
 local MAX_CRAFTING_REQUESTS_PER_WINDOW = 6
 local MAX_SHOP_OPEN_REQUESTS_PER_WINDOW = 6
 local MAX_SHOP_PURCHASE_REQUESTS_PER_WINDOW = 10
+local MAX_MAP_TRAVEL_REQUESTS_PER_WINDOW = 4
 
 local inventoryRequestCounters = {}
 local combatRequestCounters = {}
@@ -49,6 +50,7 @@ local skillRequestCounters = {}
 local craftingRequestCounters = {}
 local shopOpenRequestCounters = {}
 local shopPurchaseRequestCounters = {}
+local mapTravelRequestCounters = {}
 
 local function logInvalidRequest(player, requestType, reason)
     local playerName = player and player.Name or "Desconhecido"
@@ -67,6 +69,7 @@ local function clearRateLimitState(player)
     craftingRequestCounters[userId] = nil
     shopOpenRequestCounters[userId] = nil
     shopPurchaseRequestCounters[userId] = nil
+    mapTravelRequestCounters[userId] = nil
 end
 
 local function isRateLimited(counter, player, maxRequests)
@@ -183,6 +186,162 @@ local function validateInventoryRequest(request)
     return false, nil, string.format("ação não suportada: %s", tostring(action))
 end
 
+local function getMapDefinition(mapId)
+    local definition = MapConfig[mapId]
+    if type(definition) ~= "table" then
+        return nil
+    end
+
+    if type(definition.assetName) ~= "string" then
+        return nil
+    end
+
+    if type(definition.spawns) ~= "table" then
+        return nil
+    end
+
+    return definition
+end
+
+local function buildSpawnSet(list)
+    if type(list) ~= "table" then
+        return nil
+    end
+
+    local set
+    for key, value in pairs(list) do
+        if type(key) == "number" then
+            if type(value) == "string" then
+                set = set or {}
+                set[value] = true
+            end
+        elseif type(key) == "string" then
+            if type(value) == "boolean" then
+                if value then
+                    set = set or {}
+                    set[key] = true
+                end
+            elseif type(value) == "string" then
+                set = set or {}
+                set[key] = true
+            end
+        end
+    end
+
+    return set
+end
+
+local function getPlayerLevel(controller)
+    if not controller or not controller.stats then
+        return 1
+    end
+
+    local success, stats = pcall(function()
+        return controller.stats:GetStats()
+    end)
+
+    if success and type(stats) == "table" and type(stats.level) == "number" then
+        return stats.level
+    end
+
+    local rawStats = controller.stats.stats
+    if type(rawStats) == "table" and type(rawStats.level) == "number" then
+        return rawStats.level
+    end
+
+    return 1
+end
+
+local function normalizeSpawnRequest(spawn)
+    if spawn == nil then
+        return nil
+    end
+
+    if type(spawn) == "table" then
+        local candidate = spawn.spawnId or spawn.id or spawn.name
+        if candidate == nil then
+            return nil
+        end
+        spawn = candidate
+    end
+
+    if not isValidString(spawn, 64) then
+        return nil, "spawnId inválido"
+    end
+
+    return spawn
+end
+
+local function validateMapTravelRequest(player, controller, request)
+    if type(request) ~= "table" then
+        return false, nil, "payload inválido"
+    end
+
+    local mapId = request.mapId or request.id
+    if not isValidString(mapId) then
+        return false, nil, "mapId inválido"
+    end
+
+    local mapDefinition = getMapDefinition(mapId)
+    if not mapDefinition then
+        return false, nil, "mapa desconhecido"
+    end
+
+    local spawnId, spawnError = normalizeSpawnRequest(request.spawnId or request.spawn)
+    if spawnError then
+        return false, nil, spawnError
+    end
+
+    local resolvedSpawnCFrame
+    local resolvedSpawnName
+    local ok = pcall(function()
+        resolvedSpawnCFrame, resolvedSpawnName = MapManager:ResolveSpawn(mapId, spawnId)
+    end)
+
+    if not ok or typeof(resolvedSpawnCFrame) ~= "CFrame" or type(resolvedSpawnName) ~= "string" then
+        return false, nil, "spawn não disponível"
+    end
+
+    local travelConfig = mapDefinition.travel
+    if travelConfig then
+        local playerLevel = getPlayerLevel(controller)
+
+        if type(travelConfig.minLevel) == "number" and playerLevel < travelConfig.minLevel then
+            return false, nil, "nível insuficiente"
+        end
+
+        local allowedSet = buildSpawnSet(travelConfig.allowedSpawns)
+        if allowedSet and not allowedSet[resolvedSpawnName] then
+            return false, nil, "spawn não permitido"
+        end
+
+        local blockedSet = buildSpawnSet(travelConfig.blockedSpawns)
+        if blockedSet and blockedSet[resolvedSpawnName] then
+            return false, nil, "spawn não permitido"
+        end
+
+        local spawnRequirements = travelConfig.spawnRequirements
+        if type(spawnRequirements) == "table" then
+            local requirements = spawnRequirements[resolvedSpawnName]
+            if type(requirements) == "table" then
+                if requirements.allowed == false then
+                    return false, nil, "spawn não permitido"
+                end
+
+                if type(requirements.minLevel) == "number" and playerLevel < requirements.minLevel then
+                    return false, nil, "nível insuficiente para o spawn"
+                end
+            end
+        end
+    end
+
+    return true, {
+        mapId = mapId,
+        spawnId = spawnId,
+        resolvedSpawn = resolvedSpawnName,
+    }
+end
+
 local function validateCombatRequest(player, targetPlayer, weaponId)
     local sanitizedWeaponId
 
@@ -248,6 +407,44 @@ local NON_CRITICAL_SHOP_FAILURES = {
     requirements_not_met = true,
     limit_exceeded = true,
 }
+
+local function handleMapTravelRequest(player, request)
+    if typeof(player) ~= "Instance" or not player:IsA("Player") then
+        return false, "jogador inválido"
+    end
+
+    local controller = controllers[player]
+    if not controller then
+        return false, "jogador não inicializado"
+    end
+
+    if isRateLimited(mapTravelRequestCounters, player, MAX_MAP_TRAVEL_REQUESTS_PER_WINDOW) then
+        logInvalidRequest(player, "MapTravelRequest", "limite de requisições excedido")
+        return false, "limite de requisições excedido"
+    end
+
+    local isValid, sanitized, reason = validateMapTravelRequest(player, controller, request)
+    if not isValid then
+        logInvalidRequest(player, "MapTravelRequest", reason or "dados inválidos")
+        return false, reason or "dados inválidos"
+    end
+
+    local success, err = pcall(function()
+        MapManager:SpawnPlayer(player, sanitized.mapId, sanitized.resolvedSpawn)
+    end)
+
+    if not success then
+        logInvalidRequest(player, "MapTravelRequest", err or "falha ao posicionar jogador")
+        return false, "falha ao posicionar jogador"
+    end
+
+    PlayerProfileStore.Update(player, function(profile)
+        profile.currentMap = sanitized.mapId
+        return profile
+    end)
+
+    return true, sanitized
+end
 
 local function resolvePayloadShopId(payload)
     if type(payload) == "table" then
@@ -345,6 +542,10 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(removePlayerControllers)
+
+Remotes.MapTravelRequest.OnServerEvent:Connect(function(player, payload)
+    handleMapTravelRequest(player, payload)
+end)
 
 Remotes.InventoryRequest.OnServerEvent:Connect(function(player, request)
     local controller = controllers[player]
@@ -559,6 +760,8 @@ Remotes.SkillRequest.OnServerEvent:Connect(function(player, payload)
         end
     end
 end)
+
+controllers._handleMapTravelRequest = handleMapTravelRequest
 
 return controllers
 

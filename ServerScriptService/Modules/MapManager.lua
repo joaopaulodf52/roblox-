@@ -120,6 +120,12 @@ function MapManager:GetSpawnCFrame(mapId, spawnId)
     return cframe
 end
 
+function MapManager:ResolveSpawn(mapId, spawnId)
+    local targetMapId = mapId or self.currentMapId or DEFAULT_MAP_ID
+    local cframe, resolvedSpawn = resolveSpawn(targetMapId, spawnId)
+    return cframe, resolvedSpawn
+end
+
 function MapManager:GetPlayerMap(player)
     local spawnData = self.playerSpawns[player]
     return spawnData and spawnData.mapId or nil
@@ -172,7 +178,7 @@ function MapManager:SpawnPlayer(player, mapId, spawnId)
 
     local targetMapId = mapId or self.currentMapId or DEFAULT_MAP_ID
     local mapModel = self:EnsureLoaded(targetMapId)
-    local spawnCFrame, resolvedSpawn = resolveSpawn(targetMapId, spawnId)
+    local spawnCFrame, resolvedSpawn = self:ResolveSpawn(targetMapId, spawnId)
 
     local existingConnection = self.playerConnections[player]
     if existingConnection then
