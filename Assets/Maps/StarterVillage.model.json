@@ -1,6 +1,6 @@
 {
   "className": "Model",
-  "Name": "StarterVillage",
+  "NeedsPivotMigration": false,
   "Ground": {
     "className": "Part",
     "Name": "Ground",
