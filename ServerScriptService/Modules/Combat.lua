@@ -6,6 +6,26 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Remotes"))
 local Combat = {}
 Combat.__index = Combat
 
+local randomGenerator = Random.new()
+
+function Combat._setRandomGenerator(generator)
+    if typeof(generator) == "Random" then
+        randomGenerator = generator
+    elseif type(generator) == "table" and type(generator.NextNumber) == "function" then
+        randomGenerator = generator
+    else
+        randomGenerator = Random.new()
+    end
+end
+
+function Combat._resetRandomGenerator()
+    randomGenerator = Random.new()
+end
+
+local function getRandom()
+    return randomGenerator
+end
+
 function Combat.CalculateDamage(attackerStats, defenderStats, weaponConfig)
     local baseAttack = attackerStats.attack or 0
     local defense = defenderStats.defense or 0
@@ -23,7 +43,7 @@ function Combat.CalculateDamage(attackerStats, defenderStats, weaponConfig)
     end
 
     if criticalChance > 0 then
-        local roll = math.random()
+        local roll = getRandom():NextNumber()
         if roll <= criticalChance then
             damage = math.floor(damage * 1.5)
         end
