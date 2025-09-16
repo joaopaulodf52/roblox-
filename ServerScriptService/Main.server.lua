@@ -15,8 +15,17 @@ local MapConfig = require(ReplicatedStorage:WaitForChild("MapConfig"))
 local MapManager = require(script.Modules.MapManager)
 
 DataMigrations.Register()
-local migrationState = DataStoreManager:RunMigrations()
-print(string.format("Migrations executadas. Versão atual: %d", migrationState.version))
+
+local migrationState
+local success, err = pcall(function()
+    migrationState = DataStoreManager:RunMigrations()
+end)
+
+if success and migrationState then
+    print(string.format("Migrations executadas. Versão atual: %d", migrationState.version))
+else
+    warn("Migrations falharam: " .. tostring(err))
+end
 
 local controllers = {}
 
