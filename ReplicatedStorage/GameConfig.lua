@@ -10,6 +10,35 @@ GameConfig.DefaultStats = {
     attack = 10,
     defense = 5,
     gold = 0,
+    class = "guerreiro",
+}
+
+GameConfig.Classes = {
+    default = "guerreiro",
+    guerreiro = {
+        name = "Guerreiro",
+        role = "Tank/Dano corpo a corpo",
+        strengths = {
+            "Alta resistência física",
+            "Capaz de proteger aliados em combate próximo",
+        },
+    },
+    arqueiro = {
+        name = "Arqueiro",
+        role = "Dano à distância",
+        strengths = {
+            "Rastreia alvos e explora o terreno",
+            "Especialista em acertar pontos fracos de inimigos distantes",
+        },
+    },
+    mago = {
+        name = "Mago",
+        role = "Suporte/Dano mágico",
+        strengths = {
+            "Manipula feitiços de área",
+            "Fornece suporte e proteção mágica ao grupo",
+        },
+    },
 }
 
 GameConfig.Experience = {

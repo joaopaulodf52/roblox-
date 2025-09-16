@@ -92,5 +92,31 @@ return function()
             inventoryController:Destroy()
             statsController:Destroy()
         end)
+
+        it("grants class specific rewards when available", function()
+            local statsController, inventoryController, questController = createControllers()
+
+            local success, err = statsController:SetClass("arqueiro")
+            expect(success).to.equal(true)
+            expect(err).to.equal(nil)
+
+            questController:AcceptQuest("primeira_caca")
+            local objective = QuestConfig.primeira_caca.objective
+            for _ = 1, objective.count do
+                questController:RegisterKill(objective.target)
+            end
+
+            local summary = questController:GetSummary()
+            expect(summary.completed.primeira_caca).to.be.ok()
+
+            local classRewards = QuestConfig.primeira_caca.reward.classRewards.arqueiro.items
+            local inventorySummary = inventoryController:GetSummary()
+            expect(inventorySummary.items.training_quiver).to.be.ok()
+            expect(inventorySummary.items.training_quiver.quantity).to.equal(classRewards.training_quiver)
+
+            questController:Destroy()
+            inventoryController:Destroy()
+            statsController:Destroy()
+        end)
     end)
 end

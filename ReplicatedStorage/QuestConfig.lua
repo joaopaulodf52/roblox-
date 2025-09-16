@@ -32,5 +32,35 @@ local QuestConfig = {
     },
 }
 
+local function loadQuestModule(moduleScript)
+    local success, questDefinition = pcall(require, moduleScript)
+    if not success then
+        warn(string.format("Falha ao carregar missão %s: %s", moduleScript:GetFullName(), questDefinition))
+        return
+    end
+
+    if type(questDefinition) ~= "table" or not questDefinition.id then
+        warn(string.format("Módulo de missão inválido em %s", moduleScript:GetFullName()))
+        return
+    end
+
+    QuestConfig[questDefinition.id] = questDefinition
+end
+
+local function loadQuestFolder(container)
+    for _, child in ipairs(container:GetChildren()) do
+        if child:IsA("ModuleScript") then
+            loadQuestModule(child)
+        elseif child:IsA("Folder") then
+            loadQuestFolder(child)
+        end
+    end
+end
+
+local questsFolder = script.Parent:FindFirstChild("quests")
+if questsFolder then
+    loadQuestFolder(questsFolder)
+end
+
 return QuestConfig
 
