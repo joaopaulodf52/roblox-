@@ -1,0 +1,74 @@
+{
+  "className": "Model",
+  "NeedsPivotMigration": false,
+  "ForestFloor": {
+    "className": "Part",
+    "Name": "ForestFloor",
+    "Anchored": true,
+    "Size": [280, 4, 280],
+    "Position": [0, -2, 0]
+  },
+  "ForestEdge": {
+    "className": "Part",
+    "Name": "ForestEdge",
+    "Anchored": true,
+    "Size": [140, 6, 80],
+    "Position": [0, 4, -100]
+  },
+  "RitualGlade": {
+    "className": "Part",
+    "Name": "RitualGlade",
+    "Anchored": true,
+    "Size": [120, 4, 120],
+    "Position": [0, 6, 0]
+  },
+  "CorruptedHeart": {
+    "className": "Part",
+    "Name": "CorruptedHeart",
+    "Anchored": true,
+    "Size": [80, 8, 80],
+    "Position": [0, 10, 96]
+  },
+  "TotemRingEast": {
+    "className": "Part",
+    "Name": "TotemRingEast",
+    "Anchored": true,
+    "Size": [20, 16, 20],
+    "Position": [60, 14, 0]
+  },
+  "TotemRingWest": {
+    "className": "Part",
+    "Name": "TotemRingWest",
+    "Anchored": true,
+    "Size": [20, 16, 20],
+    "Position": [-60, 14, -10]
+  },
+  "AncientBridge": {
+    "className": "Part",
+    "Name": "AncientBridge",
+    "Anchored": true,
+    "Size": [40, 4, 100],
+    "Position": [0, 5, -140]
+  },
+  "TreeClusterNorth": {
+    "className": "Part",
+    "Name": "TreeClusterNorth",
+    "Anchored": true,
+    "Size": [24, 24, 24],
+    "Position": [-90, 20, 60]
+  },
+  "TreeClusterSouth": {
+    "className": "Part",
+    "Name": "TreeClusterSouth",
+    "Anchored": true,
+    "Size": [24, 24, 24],
+    "Position": [90, 22, -40]
+  },
+  "RitualObelisk": {
+    "className": "Part",
+    "Name": "RitualObelisk",
+    "Anchored": true,
+    "Size": [12, 28, 12],
+    "Position": [0, 18, 30]
+  }
+}

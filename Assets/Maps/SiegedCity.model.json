@@ -1,0 +1,74 @@
+{
+  "className": "Model",
+  "NeedsPivotMigration": false,
+  "CityGround": {
+    "className": "Part",
+    "Name": "CityGround",
+    "Anchored": true,
+    "Size": [300, 4, 300],
+    "Position": [0, -2, 0]
+  },
+  "CityWallNorth": {
+    "className": "Part",
+    "Name": "CityWallNorth",
+    "Anchored": true,
+    "Size": [300, 20, 12],
+    "Position": [0, 10, -120]
+  },
+  "CityWallSouth": {
+    "className": "Part",
+    "Name": "CityWallSouth",
+    "Anchored": true,
+    "Size": [300, 20, 12],
+    "Position": [0, 10, 120]
+  },
+  "GateHouse": {
+    "className": "Part",
+    "Name": "GateHouse",
+    "Anchored": true,
+    "Size": [80, 20, 40],
+    "Position": [0, 12, -110]
+  },
+  "InnerCourtyard": {
+    "className": "Part",
+    "Name": "InnerCourtyard",
+    "Anchored": true,
+    "Size": [120, 4, 120],
+    "Position": [0, 4, 40]
+  },
+  "BattlementWalk": {
+    "className": "Part",
+    "Name": "BattlementWalk",
+    "Anchored": true,
+    "Size": [120, 6, 30],
+    "Position": [70, 12, -20]
+  },
+  "DefenseTowerEast": {
+    "className": "Part",
+    "Name": "DefenseTowerEast",
+    "Anchored": true,
+    "Size": [18, 28, 18],
+    "Position": [120, 18, 0]
+  },
+  "DefenseTowerWest": {
+    "className": "Part",
+    "Name": "DefenseTowerWest",
+    "Anchored": true,
+    "Size": [18, 28, 18],
+    "Position": [-120, 18, 0]
+  },
+  "SupplyDepot": {
+    "className": "Part",
+    "Name": "SupplyDepot",
+    "Anchored": true,
+    "Size": [40, 10, 30],
+    "Position": [-60, 8, 50]
+  },
+  "MarketSquare": {
+    "className": "Part",
+    "Name": "MarketSquare",
+    "Anchored": true,
+    "Size": [80, 4, 80],
+    "Position": [0, 4, 100]
+  }
+}

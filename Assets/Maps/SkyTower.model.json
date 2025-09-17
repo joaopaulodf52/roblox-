@@ -1,0 +1,67 @@
+{
+  "className": "Model",
+  "NeedsPivotMigration": false,
+  "BasePlatform": {
+    "className": "Part",
+    "Name": "BasePlatform",
+    "Anchored": true,
+    "Size": [80, 2, 80],
+    "Position": [0, 1, 0]
+  },
+  "SupportColumn": {
+    "className": "Part",
+    "Name": "SupportColumn",
+    "Anchored": true,
+    "Size": [20, 60, 20],
+    "Position": [0, 30, 0]
+  },
+  "MidPlatform": {
+    "className": "Part",
+    "Name": "MidPlatform",
+    "Anchored": true,
+    "Size": [60, 2, 60],
+    "Position": [0, 61, 0]
+  },
+  "UpperColumn": {
+    "className": "Part",
+    "Name": "UpperColumn",
+    "Anchored": true,
+    "Size": [16, 40, 16],
+    "Position": [0, 80, 0]
+  },
+  "ApexPlatform": {
+    "className": "Part",
+    "Name": "ApexPlatform",
+    "Anchored": true,
+    "Size": [50, 2, 50],
+    "Position": [0, 101, 0]
+  },
+  "FloatingRingEast": {
+    "className": "Part",
+    "Name": "FloatingRingEast",
+    "Anchored": true,
+    "Size": [24, 4, 60],
+    "Position": [46, 61, 0]
+  },
+  "FloatingRingWest": {
+    "className": "Part",
+    "Name": "FloatingRingWest",
+    "Anchored": true,
+    "Size": [24, 4, 60],
+    "Position": [-46, 61, 0]
+  },
+  "LiftBridge": {
+    "className": "Part",
+    "Name": "LiftBridge",
+    "Anchored": true,
+    "Size": [18, 2, 60],
+    "Position": [0, 31, -60]
+  },
+  "ObservationDeck": {
+    "className": "Part",
+    "Name": "ObservationDeck",
+    "Anchored": true,
+    "Size": [40, 2, 40],
+    "Position": [0, 141, 0]
+  }
+}

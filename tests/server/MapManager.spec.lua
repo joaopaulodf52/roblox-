@@ -85,6 +85,60 @@ return function()
             expect(spawnCFrame).to.equal(MapConfig.champion_arena.spawns.champion_podium)
         end)
 
+        local extendedMapCases = {
+            {
+                mapId = "royal_castle",
+                assetName = "RoyalCastle",
+                spawnId = "grand_hall",
+            },
+            {
+                mapId = "ancient_forest",
+                assetName = "AncientForest",
+                spawnId = "corrupted_heart",
+            },
+            {
+                mapId = "sky_tower",
+                assetName = "SkyTower",
+                spawnId = "apex_platform",
+            },
+            {
+                mapId = "sieged_city",
+                assetName = "SiegedCity",
+                spawnId = "inner_courtyard",
+            },
+            {
+                mapId = "shadow_dragon_lair",
+                assetName = "ShadowDragonLair",
+                spawnId = "hoard_vault",
+            },
+            {
+                mapId = "legendary_forge",
+                assetName = "LegendaryForge",
+                spawnId = "forge_heart",
+            },
+            {
+                mapId = "dark_lord_sanctum",
+                assetName = "DarkLordSanctum",
+                spawnId = "throne_dais",
+            },
+        }
+
+        for _, case in ipairs(extendedMapCases) do
+            it(string.format("loads the %s map and resolves the %s spawn", case.mapId, case.spawnId), function()
+                local mapId = case.mapId
+                local assetName = case.assetName
+                local spawnId = case.spawnId
+
+                local mapModel = MapManager:Load(mapId)
+                expect(mapModel.Parent).to.equal(Workspace)
+                expect(mapModel.Name).to.equal(assetName)
+                expect(MapManager:GetCurrentMapId()).to.equal(mapId)
+
+                local spawnCFrame = MapManager:GetSpawnCFrame(mapId, spawnId)
+                expect(spawnCFrame).to.equal(MapConfig[mapId].spawns[spawnId])
+            end)
+        end
+
         it("spawns players at the configured positions", function()
             local spawnCFrame = MapManager:GetSpawnCFrame("starter_village", "blacksmith")
             MapManager:SpawnPlayer(player, "starter_village", "blacksmith")

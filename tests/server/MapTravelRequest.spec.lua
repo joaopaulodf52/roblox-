@@ -334,6 +334,307 @@ return function()
             expect(spawnData.spawnName).to.equal("champion_podium")
         end)
 
+        it("rejects travel to the royal castle when below the map requirement", function()
+            local player = createTestPlayer("RoyalLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 43)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "royal_castle",
+                spawnId = "courtyard",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("allows travel to royal castle spawns when requirements are met", function()
+            local player = createTestPlayer("RoyalVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 52)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "royal_castle",
+                spawnId = "grand_hall",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("royal_castle")
+            expect(result.resolvedSpawn).to.equal("grand_hall")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("royal_castle", "grand_hall"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("royal_castle")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("royal_castle")
+            expect(spawnData.spawnName).to.equal("grand_hall")
+        end)
+
+        it("rejects travel to the ancient forest when below the map requirement", function()
+            local player = createTestPlayer("ForestLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 48)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "ancient_forest",
+                spawnId = "forest_edge",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("allows travel to ancient forest spawns when requirements are met", function()
+            local player = createTestPlayer("ForestVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 58)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "ancient_forest",
+                spawnId = "ritual_glade",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("ancient_forest")
+            expect(result.resolvedSpawn).to.equal("ritual_glade")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("ancient_forest", "ritual_glade"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("ancient_forest")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("ancient_forest")
+            expect(spawnData.spawnName).to.equal("ritual_glade")
+        end)
+
+        it("rejects travel to the sky tower when below the map requirement", function()
+            local player = createTestPlayer("SkyLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 54)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "sky_tower",
+                spawnId = "tower_base",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("allows travel to sky tower spawns when requirements are met", function()
+            local player = createTestPlayer("SkyVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 64)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "sky_tower",
+                spawnId = "apex_platform",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("sky_tower")
+            expect(result.resolvedSpawn).to.equal("apex_platform")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("sky_tower", "apex_platform"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("sky_tower")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("sky_tower")
+            expect(spawnData.spawnName).to.equal("apex_platform")
+        end)
+
+        it("rejects travel to the sieged city when below the map requirement", function()
+            local player = createTestPlayer("SiegeLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 60)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "sieged_city",
+                spawnId = "front_gate",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("allows travel to sieged city spawns when requirements are met", function()
+            local player = createTestPlayer("SiegeVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 70)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "sieged_city",
+                spawnId = "inner_courtyard",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("sieged_city")
+            expect(result.resolvedSpawn).to.equal("inner_courtyard")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("sieged_city", "inner_courtyard"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("sieged_city")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("sieged_city")
+            expect(spawnData.spawnName).to.equal("inner_courtyard")
+        end)
+
+        it("rejects travel to the shadow dragon lair when below the map requirement", function()
+            local player = createTestPlayer("LairLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 66)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "shadow_dragon_lair",
+                spawnId = "lair_entrance",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("allows travel to shadow dragon lair spawns when requirements are met", function()
+            local player = createTestPlayer("LairVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 76)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "shadow_dragon_lair",
+                spawnId = "hoard_vault",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("shadow_dragon_lair")
+            expect(result.resolvedSpawn).to.equal("hoard_vault")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("shadow_dragon_lair", "hoard_vault"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("shadow_dragon_lair")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("shadow_dragon_lair")
+            expect(spawnData.spawnName).to.equal("hoard_vault")
+        end)
+
+        it("rejects travel to the legendary forge when below the map requirement", function()
+            local player = createTestPlayer("ForgeLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 72)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "legendary_forge",
+                spawnId = "entrance_chamber",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("allows travel to legendary forge spawns when requirements are met", function()
+            local player = createTestPlayer("ForgeVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 80)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "legendary_forge",
+                spawnId = "forge_heart",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("legendary_forge")
+            expect(result.resolvedSpawn).to.equal("forge_heart")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("legendary_forge", "forge_heart"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("legendary_forge")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("legendary_forge")
+            expect(spawnData.spawnName).to.equal("forge_heart")
+        end)
+
+        it("rejects travel to the dark lord sanctum when below the map requirement", function()
+            local player = createTestPlayer("SanctumLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 78)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "dark_lord_sanctum",
+                spawnId = "outer_ring",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("allows travel to dark lord sanctum spawns when requirements are met", function()
+            local player = createTestPlayer("SanctumVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 86)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "dark_lord_sanctum",
+                spawnId = "throne_dais",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("dark_lord_sanctum")
+            expect(result.resolvedSpawn).to.equal("throne_dais")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("dark_lord_sanctum", "throne_dais"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("dark_lord_sanctum")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("dark_lord_sanctum")
+            expect(spawnData.spawnName).to.equal("throne_dais")
+        end)
+
         it("rejects travel to the frozen tundra when below the map requirement", function()
             local player = createTestPlayer("FrozenLowLevel")
             local controller = controllers[player]
