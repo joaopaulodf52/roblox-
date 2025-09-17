@@ -73,6 +73,42 @@ local function sanitizeScalingTable(source)
     return sanitized
 end
 
+local function extractSkillId(entry)
+    if type(entry) == "string" then
+        return sanitizeSkillId(entry)
+    elseif type(entry) == "table" then
+        return sanitizeSkillId(entry.id)
+            or sanitizeSkillId(entry.skillId)
+            or sanitizeSkillId(entry.skill)
+    end
+
+    return nil
+end
+
+local function containerHasSkill(container, sanitizedId)
+    if type(container) ~= "table" or not sanitizedId then
+        return false
+    end
+
+    local directValue = container[sanitizedId]
+    if directValue ~= nil then
+        return directValue ~= false
+    end
+
+    for key, value in pairs(container) do
+        if sanitizeSkillId(key) == sanitizedId and value ~= false then
+            return true
+        end
+
+        local resolvedId = extractSkillId(value)
+        if resolvedId == sanitizedId then
+            return true
+        end
+    end
+
+    return false
+end
+
 local function isCharacterStatsController(value)
     return type(value) == "table" and type(value.ApplyDamage) == "function" and type(value.GetStats) == "function"
 end
@@ -575,7 +611,19 @@ function Skills:UseSkill(skillId, context)
 
     local skillConfig = self:GetSkillDefinition(sanitized)
     if not skillConfig then
-        return false, "habilidade desconhecida"
+        return false, "habilidade desconhecida", {
+            code = "unknown_skill",
+            skillId = sanitized,
+        }
+    end
+
+    local unlocked = containerHasSkill(self.data.unlocked, sanitized)
+    local equipped = containerHasSkill(self.data.hotbar, sanitized)
+    if not unlocked and not equipped then
+        return false, "habilidade não desbloqueada", {
+            code = "skill_locked",
+            skillId = sanitized,
+        }
     end
 
     context = context or {}
@@ -585,6 +633,7 @@ function Skills:UseSkill(skillId, context)
         return false, "habilidade em recarga", {
             code = "cooldown",
             remaining = remainingCooldown,
+            skillId = sanitized,
         }
     end
 
@@ -598,6 +647,7 @@ function Skills:UseSkill(skillId, context)
         if not consumed then
             return false, "mana insuficiente", {
                 code = "insufficient_mana",
+                skillId = sanitized,
             }
         end
     end
