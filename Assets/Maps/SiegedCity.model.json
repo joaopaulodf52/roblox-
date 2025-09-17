@@ -1,5 +1,6 @@
 {
   "className": "Model",
+  "Name": "SiegedCity",
   "NeedsPivotMigration": false,
   "CityGround": {
     "className": "Part",

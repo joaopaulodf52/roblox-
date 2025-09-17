@@ -1,5 +1,6 @@
 {
   "className": "Model",
+  "Name": "VolcanicCrater",
   "NeedsPivotMigration": false,
   "CraterBase": {
     "className": "Part",

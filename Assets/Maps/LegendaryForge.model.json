@@ -1,5 +1,6 @@
 {
   "className": "Model",
+  "Name": "LegendaryForge",
   "NeedsPivotMigration": false,
   "MountainBase": {
     "className": "Part",
