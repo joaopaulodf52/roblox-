@@ -1,0 +1,67 @@
+{
+  "className": "Model",
+  "NeedsPivotMigration": false,
+  "MountainBase": {
+    "className": "Part",
+    "Name": "MountainBase",
+    "Anchored": true,
+    "Size": [280, 8, 280],
+    "Position": [0, -4, 0]
+  },
+  "EntranceBridge": {
+    "className": "Part",
+    "Name": "EntranceBridge",
+    "Anchored": true,
+    "Size": [40, 4, 120],
+    "Position": [0, 6, -120]
+  },
+  "ForgeChamber": {
+    "className": "Part",
+    "Name": "ForgeChamber",
+    "Anchored": true,
+    "Size": [120, 10, 120],
+    "Position": [0, 8, 0]
+  },
+  "ForgeHeart": {
+    "className": "Part",
+    "Name": "ForgeHeart",
+    "Anchored": true,
+    "Size": [40, 10, 40],
+    "Position": [0, 12, 0]
+  },
+  "SmelterHall": {
+    "className": "Part",
+    "Name": "SmelterHall",
+    "Anchored": true,
+    "Size": [80, 10, 60],
+    "Position": [-70, 10, 20]
+  },
+  "AncestralAnvil": {
+    "className": "Part",
+    "Name": "AncestralAnvil",
+    "Anchored": true,
+    "Size": [24, 6, 24],
+    "Position": [0, 9, 20]
+  },
+  "Balcony": {
+    "className": "Part",
+    "Name": "Balcony",
+    "Anchored": true,
+    "Size": [60, 6, 40],
+    "Position": [80, 14, 0]
+  },
+  "CoolingPool": {
+    "className": "Part",
+    "Name": "CoolingPool",
+    "Anchored": true,
+    "Size": [50, 4, 50],
+    "Position": [0, 6, 80]
+  },
+  "MountainPeak": {
+    "className": "Part",
+    "Name": "MountainPeak",
+    "Anchored": true,
+    "Size": [180, 6, 180],
+    "Position": [0, 20, 0]
+  }
+}

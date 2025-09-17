@@ -1,0 +1,74 @@
+{
+  "className": "Model",
+  "NeedsPivotMigration": false,
+  "CastleGround": {
+    "className": "Part",
+    "Name": "CastleGround",
+    "Anchored": true,
+    "Size": [260, 4, 260],
+    "Position": [0, -4, 0]
+  },
+  "OuterCourtyard": {
+    "className": "Part",
+    "Name": "OuterCourtyard",
+    "Anchored": true,
+    "Size": [160, 2, 140],
+    "Position": [0, 4, -60]
+  },
+  "GrandHall": {
+    "className": "Part",
+    "Name": "GrandHall",
+    "Anchored": true,
+    "Size": [80, 10, 60],
+    "Position": [0, 10, 10]
+  },
+  "ThroneDais": {
+    "className": "Part",
+    "Name": "ThroneDais",
+    "Anchored": true,
+    "Size": [36, 6, 24],
+    "Position": [0, 12, 28]
+  },
+  "DungeonCells": {
+    "className": "Part",
+    "Name": "DungeonCells",
+    "Anchored": true,
+    "Size": [60, 6, 80],
+    "Position": [0, 6, 86]
+  },
+  "LibraryWing": {
+    "className": "Part",
+    "Name": "LibraryWing",
+    "Anchored": true,
+    "Size": [50, 10, 40],
+    "Position": [-70, 8, 6]
+  },
+  "Barracks": {
+    "className": "Part",
+    "Name": "Barracks",
+    "Anchored": true,
+    "Size": [50, 10, 40],
+    "Position": [70, 8, -4]
+  },
+  "GateBridge": {
+    "className": "Part",
+    "Name": "GateBridge",
+    "Anchored": true,
+    "Size": [32, 4, 80],
+    "Position": [0, 6, -120]
+  },
+  "WatchTowerNorth": {
+    "className": "Part",
+    "Name": "WatchTowerNorth",
+    "Anchored": true,
+    "Size": [18, 24, 18],
+    "Position": [-110, 18, -90]
+  },
+  "WatchTowerSouth": {
+    "className": "Part",
+    "Name": "WatchTowerSouth",
+    "Anchored": true,
+    "Size": [18, 24, 18],
+    "Position": [110, 18, -90]
+  }
+}

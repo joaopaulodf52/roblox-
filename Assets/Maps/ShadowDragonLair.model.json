@@ -1,0 +1,67 @@
+{
+  "className": "Model",
+  "NeedsPivotMigration": false,
+  "LairCavern": {
+    "className": "Part",
+    "Name": "LairCavern",
+    "Anchored": true,
+    "Size": [320, 6, 320],
+    "Position": [0, -3, 0]
+  },
+  "EntrancePath": {
+    "className": "Part",
+    "Name": "EntrancePath",
+    "Anchored": true,
+    "Size": [60, 4, 120],
+    "Position": [0, 4, 140]
+  },
+  "LavaPool": {
+    "className": "Part",
+    "Name": "LavaPool",
+    "Anchored": true,
+    "Size": [120, 4, 120],
+    "Position": [0, 2, 0]
+  },
+  "DragonPerch": {
+    "className": "Part",
+    "Name": "DragonPerch",
+    "Anchored": true,
+    "Size": [80, 6, 80],
+    "Position": [0, 10, -80]
+  },
+  "TreasureHoard": {
+    "className": "Part",
+    "Name": "TreasureHoard",
+    "Anchored": true,
+    "Size": [100, 6, 60],
+    "Position": [0, 8, -140]
+  },
+  "SidePlatformEast": {
+    "className": "Part",
+    "Name": "SidePlatformEast",
+    "Anchored": true,
+    "Size": [40, 6, 80],
+    "Position": [100, 8, -40]
+  },
+  "SidePlatformWest": {
+    "className": "Part",
+    "Name": "SidePlatformWest",
+    "Anchored": true,
+    "Size": [40, 6, 80],
+    "Position": [-100, 8, -20]
+  },
+  "CrystalCluster": {
+    "className": "Part",
+    "Name": "CrystalCluster",
+    "Anchored": true,
+    "Size": [24, 24, 24],
+    "Position": [60, 20, 40]
+  },
+  "CollapsedColumn": {
+    "className": "Part",
+    "Name": "CollapsedColumn",
+    "Anchored": true,
+    "Size": [12, 24, 60],
+    "Position": [-60, 18, 60]
+  }
+}

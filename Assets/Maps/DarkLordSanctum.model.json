@@ -1,0 +1,67 @@
+{
+  "className": "Model",
+  "NeedsPivotMigration": false,
+  "SanctumFloor": {
+    "className": "Part",
+    "Name": "SanctumFloor",
+    "Anchored": true,
+    "Size": [260, 6, 260],
+    "Position": [0, -3, 0]
+  },
+  "OuterRing": {
+    "className": "Part",
+    "Name": "OuterRing",
+    "Anchored": true,
+    "Size": [200, 4, 200],
+    "Position": [0, 5, -40]
+  },
+  "ShadowFissure": {
+    "className": "Part",
+    "Name": "ShadowFissure",
+    "Anchored": true,
+    "Size": [80, 2, 80],
+    "Position": [0, 2, 0]
+  },
+  "ThronePlatform": {
+    "className": "Part",
+    "Name": "ThronePlatform",
+    "Anchored": true,
+    "Size": [60, 8, 60],
+    "Position": [0, 14, 80]
+  },
+  "EnergyPillarEast": {
+    "className": "Part",
+    "Name": "EnergyPillarEast",
+    "Anchored": true,
+    "Size": [16, 30, 16],
+    "Position": [70, 18, 0]
+  },
+  "EnergyPillarWest": {
+    "className": "Part",
+    "Name": "EnergyPillarWest",
+    "Anchored": true,
+    "Size": [16, 30, 16],
+    "Position": [-70, 18, 0]
+  },
+  "ShadowOverlook": {
+    "className": "Part",
+    "Name": "ShadowOverlook",
+    "Anchored": true,
+    "Size": [80, 6, 40],
+    "Position": [100, 10, 0]
+  },
+  "EntranceBridge": {
+    "className": "Part",
+    "Name": "EntranceBridge",
+    "Anchored": true,
+    "Size": [40, 4, 120],
+    "Position": [0, 6, -140]
+  },
+  "SealingRunes": {
+    "className": "Part",
+    "Name": "SealingRunes",
+    "Anchored": true,
+    "Size": [120, 2, 120],
+    "Position": [0, 4, 40]
+  }
+}
