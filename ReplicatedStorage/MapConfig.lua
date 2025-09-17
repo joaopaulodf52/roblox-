@@ -83,7 +83,7 @@ local MapConfig = {
         spawns = {
             entrance = CFrame.new(0, 9, 72),
             central_chamber = CFrame.new(0, 10, 0),
-            observation_spire = CFrame.new(96, 10, 18),
+            observation_spire = CFrame.new(102, 10, 18),
         },
         travel = {
             minLevel = 26,
