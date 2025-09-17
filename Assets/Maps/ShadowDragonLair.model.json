@@ -1,5 +1,6 @@
 {
   "className": "Model",
+  "Name": "ShadowDragonLair",
   "NeedsPivotMigration": false,
   "LairCavern": {
     "className": "Part",

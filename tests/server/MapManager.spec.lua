@@ -30,6 +30,22 @@ return function()
     describe("MapManager", function()
         local player
 
+        it("exports map assets with pivot migration disabled", function()
+            local mapsFolder = MapManager:GetMapsFolder()
+
+            for _, config in pairs(MapConfig) do
+                if type(config) == "table" and type(config.assetName) == "string" then
+                    local asset = mapsFolder:FindFirstChild(config.assetName)
+                    expect(asset).to.be.ok()
+
+                    if asset:IsA("Model") then
+                        expect(asset.NeedsPivotMigration).to.equal(false)
+                        expect(asset.Name).to.equal(config.assetName)
+                    end
+                end
+            end
+        end)
+
         beforeEach(function()
             destroyMapInstances()
             MapManager:Unload()

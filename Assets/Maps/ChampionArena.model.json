@@ -1,5 +1,6 @@
 {
   "className": "Model",
+  "Name": "ChampionArena",
   "NeedsPivotMigration": false,
   "ArenaFloor": {
     "className": "Part",
