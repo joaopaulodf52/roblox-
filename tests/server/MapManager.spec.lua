@@ -68,6 +68,13 @@ return function()
             expect(MapManager:GetCurrentMapId()).to.equal("desert_outpost")
         end)
 
+        it("loads the volcanic crater map when requested", function()
+            local craterModel = MapManager:Load("volcanic_crater")
+            expect(craterModel.Parent).to.equal(Workspace)
+            expect(craterModel.Name).to.equal("VolcanicCrater")
+            expect(MapManager:GetCurrentMapId()).to.equal("volcanic_crater")
+        end)
+
         it("spawns players at the configured positions", function()
             local spawnCFrame = MapManager:GetSpawnCFrame("starter_village", "blacksmith")
             MapManager:SpawnPlayer(player, "starter_village", "blacksmith")
