@@ -269,6 +269,71 @@ return function()
             expect(spawnData.spawnName).to.equal("central_chamber")
         end)
 
+        it("rejects travel to the champion arena when below the map requirement", function()
+            local player = createTestPlayer("ChampionLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 38)
+
+            local currentMap = MapManager:GetPlayerMap(player)
+            local initialProfile = mockStore:getProfile(player)
+            local initialMap = initialProfile.currentMap
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "champion_arena",
+                spawnId = "arrival_gate",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+            expect(MapManager:GetPlayerMap(player)).to.equal(currentMap)
+            expect(mockStore:getProfile(player).currentMap).to.equal(initialMap)
+        end)
+
+        it("rejects travel to restricted champion arena spawns when below the requirement", function()
+            local player = createTestPlayer("ChampionRestricted")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 45)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "champion_arena",
+                spawnId = "champion_podium",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente para o spawn")
+        end)
+
+        it("allows travel to champion arena spawns when requirements are met", function()
+            local player = createTestPlayer("ChampionVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 50)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "champion_arena",
+                spawnId = "champion_podium",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("champion_arena")
+            expect(result.resolvedSpawn).to.equal("champion_podium")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("champion_arena", "champion_podium"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("champion_arena")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("champion_arena")
+            expect(spawnData.spawnName).to.equal("champion_podium")
+        end)
+
         it("rejects travel to the frozen tundra when below the map requirement", function()
             local player = createTestPlayer("FrozenLowLevel")
             local controller = controllers[player]

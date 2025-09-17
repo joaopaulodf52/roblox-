@@ -75,6 +75,16 @@ return function()
             expect(MapManager:GetCurrentMapId()).to.equal("volcanic_crater")
         end)
 
+        it("loads the champion arena map and resolves its spawns", function()
+            local arenaModel = MapManager:Load("champion_arena")
+            expect(arenaModel.Parent).to.equal(Workspace)
+            expect(arenaModel.Name).to.equal("ChampionArena")
+            expect(MapManager:GetCurrentMapId()).to.equal("champion_arena")
+
+            local spawnCFrame = MapManager:GetSpawnCFrame("champion_arena", "champion_podium")
+            expect(spawnCFrame).to.equal(MapConfig.champion_arena.spawns.champion_podium)
+        end)
+
         it("spawns players at the configured positions", function()
             local spawnCFrame = MapManager:GetSpawnCFrame("starter_village", "blacksmith")
             MapManager:SpawnPlayer(player, "starter_village", "blacksmith")
