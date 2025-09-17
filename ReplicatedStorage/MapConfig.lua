@@ -33,6 +33,48 @@ local MapConfig = {
             },
         },
     },
+
+    desert_outpost = {
+        name = "Posto do Deserto",
+        assetName = "DesertOutpost",
+        defaultSpawn = "camp",
+        spawns = {
+            camp = CFrame.new(64, 4, -28),
+            watchtower = CFrame.new(92, 12, 14),
+        },
+        travel = {
+            minLevel = 12,
+            allowedSpawns = { "camp", "watchtower" },
+            spawnRequirements = {
+                watchtower = {
+                    minLevel = 18,
+                },
+            },
+        },
+    },
+
+    frozen_tundra = {
+        name = "Tundra Congelada",
+        assetName = "FrozenTundra",
+        defaultSpawn = "encampment",
+        spawns = {
+            encampment = CFrame.new(-80, 6, -120),
+            glacier = CFrame.new(-132, 14, -86),
+            ridge = CFrame.new(-98, 20, -164),
+        },
+        travel = {
+            minLevel = 20,
+            allowedSpawns = { "encampment", "glacier", "ridge" },
+            spawnRequirements = {
+                glacier = {
+                    minLevel = 24,
+                },
+                ridge = {
+                    minLevel = 28,
+                },
+            },
+        },
+    },
 }
 
 return MapConfig
