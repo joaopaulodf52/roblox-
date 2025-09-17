@@ -98,6 +98,29 @@ local MapConfig = {
             },
         },
     },
+
+    champion_arena = {
+        name = "Arena dos Campeões",
+        assetName = "ChampionArena",
+        defaultSpawn = "arrival_gate",
+        spawns = {
+            arrival_gate = CFrame.new(0, 10, -80),
+            contender_ring = CFrame.new(0, 10, 0),
+            champion_podium = CFrame.new(0, 12, 80),
+        },
+        travel = {
+            minLevel = 40,
+            allowedSpawns = { "arrival_gate", "contender_ring", "champion_podium" },
+            spawnRequirements = {
+                contender_ring = {
+                    minLevel = 44,
+                },
+                champion_podium = {
+                    minLevel = 48,
+                },
+            },
+        },
+    },
 }
 
 return MapConfig
