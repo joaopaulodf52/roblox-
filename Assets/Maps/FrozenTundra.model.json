@@ -1,6 +1,5 @@
 {
   "className": "Model",
-  "Name": "FrozenTundra",
   "NeedsPivotMigration": false,
   "SnowField": {
     "className": "Part",

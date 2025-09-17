@@ -1,6 +1,5 @@
 {
   "className": "Model",
-  "Name": "DesertOutpost",
   "NeedsPivotMigration": false,
   "SandFloor": {
     "className": "Part",
