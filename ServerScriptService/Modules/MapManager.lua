@@ -2,23 +2,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local MapConfig = require(ReplicatedStorage:WaitForChild("MapConfig"))
+local MapUtils = require(script.Parent.MapUtils)
 
-local function resolveDefaultMapId()
-    local candidate = MapConfig.defaultMap
-    if typeof(candidate) == "string" and MapConfig[candidate] then
-        return candidate
-    end
-
-    for key, value in pairs(MapConfig) do
-        if type(value) == "table" and value.assetName then
-            return key
-        end
-    end
-
-    return nil
-end
-
-local DEFAULT_MAP_ID = resolveDefaultMapId()
+local DEFAULT_MAP_ID = MapUtils.getDefaultMapId(MapConfig)
 assert(DEFAULT_MAP_ID, "MapConfig deve definir ao menos um mapa válido")
 
 local MapManager = {
