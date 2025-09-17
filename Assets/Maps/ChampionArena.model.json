@@ -1,0 +1,96 @@
+{
+  "className": "Model",
+  "Name": "ChampionArena",
+  "NeedsPivotMigration": false,
+  "CentralPlatform": {
+    "className": "Part",
+    "Name": "CentralPlatform",
+    "Anchored": true,
+    "Size": [80, 2, 80],
+    "Position": [0, 1, 0]
+  },
+  "ArenaEmblem": {
+    "className": "Part",
+    "Name": "ArenaEmblem",
+    "Anchored": true,
+    "Size": [16, 1, 16],
+    "Position": [0, 2, 0]
+  },
+  "NorthStands": {
+    "className": "Part",
+    "Name": "NorthStands",
+    "Anchored": true,
+    "Size": [80, 16, 12],
+    "Position": [0, 8, -56]
+  },
+  "SouthStands": {
+    "className": "Part",
+    "Name": "SouthStands",
+    "Anchored": true,
+    "Size": [80, 16, 12],
+    "Position": [0, 8, 56]
+  },
+  "EastStands": {
+    "className": "Part",
+    "Name": "EastStands",
+    "Anchored": true,
+    "Size": [12, 16, 80],
+    "Position": [56, 8, 0]
+  },
+  "WestStands": {
+    "className": "Part",
+    "Name": "WestStands",
+    "Anchored": true,
+    "Size": [12, 16, 80],
+    "Position": [-56, 8, 0]
+  },
+  "VestibuleFloor": {
+    "className": "Part",
+    "Name": "VestibuleFloor",
+    "Anchored": true,
+    "Size": [26, 1, 20],
+    "Position": [-72, 0.5, 0]
+  },
+  "EastVestibuleFloor": {
+    "className": "Part",
+    "Name": "EastVestibuleFloor",
+    "Anchored": true,
+    "Size": [26, 1, 20],
+    "Position": [72, 0.5, 0]
+  },
+  "EntryPortalWest": {
+    "className": "Part",
+    "Name": "EntryPortalWest",
+    "Anchored": true,
+    "Size": [12, 16, 2],
+    "Position": [-80, 8, 0]
+  },
+  "EntryPortalEast": {
+    "className": "Part",
+    "Name": "EntryPortalEast",
+    "Anchored": true,
+    "Size": [12, 16, 2],
+    "Position": [80, 8, 0]
+  },
+  "PortalRampWest": {
+    "className": "Part",
+    "Name": "PortalRampWest",
+    "Anchored": true,
+    "Size": [16, 2, 12],
+    "Position": [-64, 1, 0]
+  },
+  "PortalRampEast": {
+    "className": "Part",
+    "Name": "PortalRampEast",
+    "Anchored": true,
+    "Size": [16, 2, 12],
+    "Position": [64, 1, 0]
+  },
+  "AnnouncerBooth": {
+    "className": "Part",
+    "Name": "AnnouncerBooth",
+    "Anchored": true,
+    "Size": [24, 12, 12],
+    "Position": [0, 10, 72]
+  }
+}

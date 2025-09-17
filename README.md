@@ -34,6 +34,14 @@ Este repositório contém os scripts principais para um jogo estilo RPG no Roblo
 4. Sempre que houver alteração em dados persistentes, adicione uma nova migration.
 5. Teste as alterações localmente no Roblox Studio antes de publicar.
 
+## Eventos do Ato e Arena dos Campeões
+
+- A arena de desafios está disponível através do mapa `champion_arena`, definido em `ReplicatedStorage/MapConfig.lua` e exportado como `Assets/Maps/ChampionArena.model.json`.
+- Os jogadores devem cumprir o requisito mínimo de nível 25 para viajar para o vestiário e nível 30 para iniciar combates no ponto `arena_central`.
+- O PvP da arena exige que ambos os jogadores estejam com a missão `arena_campeoes` ativa e posicionados no spawn `arena_central`.
+- Utilize `MapManager:SpawnPlayer(player, "champion_arena", "vestiario")` ou envie um `Remotes.MapTravelRequest` correspondente para carregar o mapa durante eventos especiais do ato.
+- Interfaces de missão podem ler o campo `recommendedMap` das definições em `QuestConfig` para orientar os jogadores sobre quando se deslocar para a arena.
+
 ## Testes automatizados
 
 - O pacote `TestEZ` está disponível em `ReplicatedStorage/TestEZ` e é utilizado para executar as suites localizadas em `tests/server`.

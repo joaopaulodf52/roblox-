@@ -114,10 +114,8 @@ return function()
             local profile = mockStore:getProfile(player)
             expect(profile.currentMap).to.equal("crystal_cavern")
 
-            local spawnData = MapManager.playerSpawns[player]
-            expect(spawnData).to.be.ok()
-            expect(spawnData.mapId).to.equal("crystal_cavern")
-            expect(spawnData.spawnName).to.equal("sanctuary")
+            expect(MapManager:GetPlayerMap(player)).to.equal("crystal_cavern")
+            expect(MapManager:GetPlayerSpawnName(player)).to.equal("sanctuary")
         end)
 
         it("rejects travel for unknown maps", function()
@@ -196,10 +194,8 @@ return function()
             local profile = mockStore:getProfile(player)
             expect(profile.currentMap).to.equal("desert_outpost")
 
-            local spawnData = MapManager.playerSpawns[player]
-            expect(spawnData).to.be.ok()
-            expect(spawnData.mapId).to.equal("desert_outpost")
-            expect(spawnData.spawnName).to.equal("camp")
+            expect(MapManager:GetPlayerMap(player)).to.equal("desert_outpost")
+            expect(MapManager:GetPlayerSpawnName(player)).to.equal("camp")
         end)
 
         it("rejects travel to restricted desert outpost spawns when below the requirement", function()
@@ -216,6 +212,62 @@ return function()
 
             expect(success).to.equal(false)
             expect(reason).to.equal("nível insuficiente para o spawn")
+        end)
+
+        it("rejects travel to the champion arena when below the map requirement", function()
+            local player = createTestPlayer("ArenaLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 24)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "champion_arena",
+                spawnId = "vestiario",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+        end)
+
+        it("rejects travel to the champion arena central spawn when requirements are not met", function()
+            local player = createTestPlayer("ArenaCentralLocked")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 28)
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "champion_arena",
+                spawnId = "arena_central",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente para o spawn")
+        end)
+
+        it("allows travel to the champion arena when requirements are satisfied", function()
+            local player = createTestPlayer("ArenaTraveler")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 32)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "champion_arena",
+                spawnId = "arena_central",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("champion_arena")
+            expect(result.resolvedSpawn).to.equal("arena_central")
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("champion_arena")
+
+            expect(MapManager:GetPlayerMap(player)).to.equal("champion_arena")
+            expect(MapManager:GetPlayerSpawnName(player)).to.equal("arena_central")
         end)
 
         it("rejects travel to the frozen tundra when below the map requirement", function()
@@ -260,10 +312,8 @@ return function()
             local profile = mockStore:getProfile(player)
             expect(profile.currentMap).to.equal("frozen_tundra")
 
-            local spawnData = MapManager.playerSpawns[player]
-            expect(spawnData).to.be.ok()
-            expect(spawnData.mapId).to.equal("frozen_tundra")
-            expect(spawnData.spawnName).to.equal("ridge")
+            expect(MapManager:GetPlayerMap(player)).to.equal("frozen_tundra")
+            expect(MapManager:GetPlayerSpawnName(player)).to.equal("ridge")
         end)
     end)
 end

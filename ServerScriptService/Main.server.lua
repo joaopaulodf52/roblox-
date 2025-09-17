@@ -385,6 +385,55 @@ local function validateCombatRequest(player, targetPlayer, weaponId)
         return false, nil, sanitizedWeaponId, "autoalvo não permitido"
     end
 
+    local playerMapId = MapManager:GetPlayerMap(player)
+    local targetMapId = MapManager:GetPlayerMap(targetPlayer)
+
+    if playerMapId ~= targetMapId then
+        return false, nil, sanitizedWeaponId, "jogadores em mapas diferentes"
+    end
+
+    if playerMapId == nil then
+        return false, nil, sanitizedWeaponId, "jogadores sem mapa ativo"
+    end
+
+    local mapDefinition = MapConfig[playerMapId]
+    local matchmakingConfig = mapDefinition and mapDefinition.matchmaking
+    local pvpConfig = matchmakingConfig and matchmakingConfig.pvp
+
+    if pvpConfig then
+        if pvpConfig.enabled == false then
+            return false, nil, sanitizedWeaponId, "pvp indisponível neste mapa"
+        end
+
+        local allowedSpawns = buildSpawnSet(pvpConfig.allowedSpawns)
+        if allowedSpawns then
+            local function spawnAllowed(playerInstance)
+                local spawnName = MapManager:GetPlayerSpawnName(playerInstance)
+                return spawnName ~= nil and allowedSpawns[spawnName] == true
+            end
+
+            if not spawnAllowed(player) or not spawnAllowed(targetPlayer) then
+                return false, nil, sanitizedWeaponId, "pvp restrito a spawns específicos"
+            end
+        end
+
+        local requiredQuest = pvpConfig.requiredQuest
+        if type(requiredQuest) == "string" and requiredQuest ~= "" then
+            local function hasRequiredQuest(playerInstance)
+                local controller = controllers[playerInstance]
+                local questManager = controller and controller.quests
+                if questManager and questManager.IsQuestActive then
+                    return questManager:IsQuestActive(requiredQuest)
+                end
+                return false
+            end
+
+            if not hasRequiredQuest(player) or not hasRequiredQuest(targetPlayer) then
+                return false, nil, sanitizedWeaponId, "requisitos de matchmaking não atendidos"
+            end
+        end
+    end
+
     return true, targetPlayer, sanitizedWeaponId
 end
 
@@ -998,6 +1047,7 @@ Remotes.SkillRequest.OnServerEvent:Connect(function(player, payload)
 end)
 
 controllers._handleMapTravelRequest = handleMapTravelRequest
+controllers._validateCombatRequest = validateCombatRequest
 
 return controllers
 

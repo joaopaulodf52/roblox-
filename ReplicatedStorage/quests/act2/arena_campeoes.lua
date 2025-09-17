@@ -4,6 +4,12 @@ local quest = {
     questType = "main",
     name = "A Arena dos Campeões",
     description = "Prove sua força na arena enfrentando desafios alinhados à sua especialidade.",
+    recommendedMap = {
+        mapId = "champion_arena",
+        spawnId = "vestiario",
+        instructions = "Viaje até o vestiário da Arena dos Campeões e avance ao centro quando estiver pronto para lutar.",
+    },
+    matchmakingTag = "champion_arena",
     objective = {
         type = "story",
         target = "titulo_campeao",

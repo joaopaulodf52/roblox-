@@ -75,6 +75,34 @@ local MapConfig = {
             },
         },
     },
+
+    champion_arena = {
+        name = "Arena dos Campeões",
+        assetName = "ChampionArena",
+        defaultSpawn = "vestiario",
+        spawns = {
+            vestiario = CFrame.new(-72, 6, 0),
+            arena_central = CFrame.new(0, 6, 0),
+        },
+        travel = {
+            minLevel = 25,
+            allowedSpawns = { "vestiario", "arena_central" },
+            spawnRequirements = {
+                arena_central = {
+                    minLevel = 30,
+                },
+            },
+        },
+        matchmaking = {
+            pve = {
+                recommendedSpawns = { "arena_central" },
+            },
+            pvp = {
+                requiredQuest = "arena_campeoes",
+                allowedSpawns = { "arena_central" },
+            },
+        },
+    },
 }
 
 return MapConfig

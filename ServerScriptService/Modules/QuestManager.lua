@@ -185,13 +185,27 @@ function QuestManager:AcceptQuest(questId)
         return false, "Limite de missões ativas atingido"
     end
 
-    self.data.active[questId] = {
+    local entry = {
         id = questId,
         progress = 0,
         goal = definition.objective.count or 1,
         status = "active",
         objective = definition.objective,
     }
+
+    if definition.recommendedMap ~= nil then
+        if typeof(definition.recommendedMap) == "table" then
+            entry.recommendedMap = table.clone(definition.recommendedMap)
+        else
+            entry.recommendedMap = definition.recommendedMap
+        end
+    end
+
+    if type(definition.matchmakingTag) == "string" and definition.matchmakingTag ~= "" then
+        entry.matchmakingTag = definition.matchmakingTag
+    end
+
+    self.data.active[questId] = entry
 
     self:_save()
     self:_pushUpdate()
@@ -322,6 +336,19 @@ function QuestManager:RegisterCollection(target, amount)
             self:UpdateProgress(questId, progressAmount)
         end
     end
+end
+
+function QuestManager:IsQuestActive(questId)
+    if type(questId) ~= "string" or questId == "" then
+        return false
+    end
+
+    local active = self.data.active
+    if type(active) ~= "table" then
+        return false
+    end
+
+    return active[questId] ~= nil
 end
 
 function QuestManager:Destroy()

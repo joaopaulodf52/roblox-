@@ -68,6 +68,16 @@ return function()
             expect(MapManager:GetCurrentMapId()).to.equal("desert_outpost")
         end)
 
+        it("loads the champion arena map with its configured spawns", function()
+            local arenaModel = MapManager:Load("champion_arena")
+            expect(arenaModel.Parent).to.equal(Workspace)
+            expect(arenaModel.Name).to.equal("ChampionArena")
+            expect(MapManager:GetCurrentMapId()).to.equal("champion_arena")
+
+            local centralSpawn = MapManager:GetSpawnCFrame("champion_arena", "arena_central")
+            expect(centralSpawn).to.equal(CFrame.new(0, 6, 0))
+        end)
+
         it("spawns players at the configured positions", function()
             local spawnCFrame = MapManager:GetSpawnCFrame("starter_village", "blacksmith")
             MapManager:SpawnPlayer(player, "starter_village", "blacksmith")

@@ -117,6 +117,11 @@ function MapManager:GetPlayerMap(player)
     return spawnData and spawnData.mapId or nil
 end
 
+function MapManager:GetPlayerSpawnName(player)
+    local spawnData = self.playerSpawns[player]
+    return spawnData and spawnData.spawnName or nil
+end
+
 function MapManager:Load(mapId)
     local config = getMapConfig(mapId)
     local maps = getMapsFolder()
