@@ -358,6 +358,7 @@ local function validateMapTravelRequest(player, controller, request)
         mapId = mapId,
         spawnId = spawnId,
         resolvedSpawn = resolvedSpawnName,
+        resolvedSpawnCFrame = resolvedSpawnCFrame,
     }
 end
 

@@ -1,0 +1,124 @@
+{
+  "className": "Model",
+  "Name": "VolcanicCrater",
+  "NeedsPivotMigration": false,
+  "CraterBase": {
+    "className": "Part",
+    "Name": "CraterBase",
+    "Anchored": true,
+    "Size": [240, 4, 240],
+    "Position": [0, -4, 0]
+  },
+  "EntranceRamp": {
+    "className": "Part",
+    "Name": "EntranceRamp",
+    "Anchored": true,
+    "Size": [36, 4, 80],
+    "Position": [0, 2, 104]
+  },
+  "EntrancePlatform": {
+    "className": "Part",
+    "Name": "EntrancePlatform",
+    "Anchored": true,
+    "Size": [44, 2, 44],
+    "Position": [0, 8, 72]
+  },
+  "CentralChamberPlatform": {
+    "className": "Part",
+    "Name": "CentralChamberPlatform",
+    "Anchored": true,
+    "Size": [56, 4, 56],
+    "Position": [0, 8, 0]
+  },
+  "CentralChamberRing": {
+    "className": "Part",
+    "Name": "CentralChamberRing",
+    "Anchored": true,
+    "Size": [84, 2, 84],
+    "Position": [0, 6, 0]
+  },
+  "BridgeToCore": {
+    "className": "Part",
+    "Name": "BridgeToCore",
+    "Anchored": true,
+    "Size": [12, 2, 60],
+    "Position": [0, 8, 36]
+  },
+  "LavaRiverWest": {
+    "className": "Part",
+    "Name": "LavaRiverWest",
+    "Anchored": true,
+    "Size": [12, 2, 160],
+    "Position": [-52, -1, 0]
+  },
+  "LavaRiverEast": {
+    "className": "Part",
+    "Name": "LavaRiverEast",
+    "Anchored": true,
+    "Size": [12, 2, 160],
+    "Position": [52, -1, 0]
+  },
+  "LavaLake": {
+    "className": "Part",
+    "Name": "LavaLake",
+    "Anchored": true,
+    "Size": [96, 2, 72],
+    "Position": [0, -2, -72]
+  },
+  "MagmaFall": {
+    "className": "Part",
+    "Name": "MagmaFall",
+    "Anchored": true,
+    "Size": [20, 16, 8],
+    "Position": [0, 12, -108]
+  },
+  "HarvestShelfWest": {
+    "className": "Part",
+    "Name": "HarvestShelfWest",
+    "Anchored": true,
+    "Size": [38, 2, 38],
+    "Position": [-70, 10, 54]
+  },
+  "HarvestShelfEast": {
+    "className": "Part",
+    "Name": "HarvestShelfEast",
+    "Anchored": true,
+    "Size": [34, 2, 34],
+    "Position": [68, 12, -58]
+  },
+  "ResourceClusterAlpha": {
+    "className": "Part",
+    "Name": "ResourceClusterAlpha",
+    "Anchored": true,
+    "Size": [12, 12, 12],
+    "Position": [-70, 16, 54]
+  },
+  "ResourceClusterBeta": {
+    "className": "Part",
+    "Name": "ResourceClusterBeta",
+    "Anchored": true,
+    "Size": [10, 10, 10],
+    "Position": [68, 18, -58]
+  },
+  "ObservationSpireBase": {
+    "className": "Part",
+    "Name": "ObservationSpireBase",
+    "Anchored": true,
+    "Size": [18, 2, 18],
+    "Position": [96, 8, 18]
+  },
+  "ObservationSpire": {
+    "className": "Part",
+    "Name": "ObservationSpire",
+    "Anchored": true,
+    "Size": [10, 26, 10],
+    "Position": [96, 22, 18]
+  },
+  "BasaltArch": {
+    "className": "Part",
+    "Name": "BasaltArch",
+    "Anchored": true,
+    "Size": [64, 4, 12],
+    "Position": [-24, 14, -44]
+  }
+}

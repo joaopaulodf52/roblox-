@@ -110,6 +110,7 @@ return function()
             expect(result).to.be.ok()
             expect(result.mapId).to.equal("crystal_cavern")
             expect(result.resolvedSpawn).to.equal("sanctuary")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("crystal_cavern", "sanctuary"))
 
             local profile = mockStore:getProfile(player)
             expect(profile.currentMap).to.equal("crystal_cavern")
@@ -192,6 +193,7 @@ return function()
             expect(result).to.be.ok()
             expect(result.mapId).to.equal("desert_outpost")
             expect(result.resolvedSpawn).to.equal("camp")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("desert_outpost", "camp"))
 
             local profile = mockStore:getProfile(player)
             expect(profile.currentMap).to.equal("desert_outpost")
@@ -216,6 +218,55 @@ return function()
 
             expect(success).to.equal(false)
             expect(reason).to.equal("nível insuficiente para o spawn")
+        end)
+
+        it("rejects travel to the volcanic crater when below the map requirement", function()
+            local player = createTestPlayer("VolcanicLowLevel")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 24)
+
+            local currentMap = MapManager:GetPlayerMap(player)
+            local initialProfile = mockStore:getProfile(player)
+            local initialMap = initialProfile.currentMap
+
+            local success, reason = controllers._handleMapTravelRequest(player, {
+                mapId = "volcanic_crater",
+                spawnId = "entrance",
+            })
+
+            expect(success).to.equal(false)
+            expect(reason).to.equal("nível insuficiente")
+            expect(MapManager:GetPlayerMap(player)).to.equal(currentMap)
+            expect(mockStore:getProfile(player).currentMap).to.equal(initialMap)
+        end)
+
+        it("allows travel to volcanic crater spawns when requirements are met", function()
+            local player = createTestPlayer("VolcanicVeteran")
+            local controller = controllers[player]
+            expect(controller).to.be.ok()
+
+            setPlayerLevel(player, 35)
+
+            local success, result = controllers._handleMapTravelRequest(player, {
+                mapId = "volcanic_crater",
+                spawnId = "central_chamber",
+            })
+
+            expect(success).to.equal(true)
+            expect(result).to.be.ok()
+            expect(result.mapId).to.equal("volcanic_crater")
+            expect(result.resolvedSpawn).to.equal("central_chamber")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("volcanic_crater", "central_chamber"))
+
+            local profile = mockStore:getProfile(player)
+            expect(profile.currentMap).to.equal("volcanic_crater")
+
+            local spawnData = MapManager.playerSpawns[player]
+            expect(spawnData).to.be.ok()
+            expect(spawnData.mapId).to.equal("volcanic_crater")
+            expect(spawnData.spawnName).to.equal("central_chamber")
         end)
 
         it("rejects travel to the frozen tundra when below the map requirement", function()
@@ -256,6 +307,7 @@ return function()
             expect(result).to.be.ok()
             expect(result.mapId).to.equal("frozen_tundra")
             expect(result.resolvedSpawn).to.equal("ridge")
+            expect(result.resolvedSpawnCFrame).to.equal(MapManager:GetSpawnCFrame("frozen_tundra", "ridge"))
 
             local profile = mockStore:getProfile(player)
             expect(profile.currentMap).to.equal("frozen_tundra")

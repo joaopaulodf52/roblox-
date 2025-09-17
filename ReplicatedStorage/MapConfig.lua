@@ -75,6 +75,29 @@ local MapConfig = {
             },
         },
     },
+
+    volcanic_crater = {
+        name = "Cratera Vulcânica",
+        assetName = "VolcanicCrater",
+        defaultSpawn = "entrance",
+        spawns = {
+            entrance = CFrame.new(0, 9, 72),
+            central_chamber = CFrame.new(0, 10, 0),
+            observation_spire = CFrame.new(96, 10, 18),
+        },
+        travel = {
+            minLevel = 26,
+            allowedSpawns = { "entrance", "central_chamber", "observation_spire" },
+            spawnRequirements = {
+                central_chamber = {
+                    minLevel = 32,
+                },
+                observation_spire = {
+                    minLevel = 34,
+                },
+            },
+        },
+    },
 }
 
 return MapConfig
