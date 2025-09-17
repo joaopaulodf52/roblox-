@@ -54,9 +54,25 @@ local shopPurchaseRequestCounters = {}
 local mapTravelRequestCounters = {}
 local achievementLeaderboardRequestCounters = {}
 
-local function logInvalidRequest(player, requestType, reason)
+local function logInvalidRequest(player, requestType, reason, detail)
     local playerName = player and player.Name or "Desconhecido"
-    warn(string.format("Solicitação inválida (%s) de %s: %s", requestType, playerName, reason))
+    local message = string.format("Solicitação inválida (%s) de %s: %s", requestType, playerName, reason or "motivo não informado")
+
+    if type(detail) == "table" then
+        local entries = {}
+        for key, value in pairs(detail) do
+            local valueType = typeof(value)
+            if valueType == "string" or valueType == "number" or valueType == "boolean" then
+                table.insert(entries, string.format("%s=%s", tostring(key), tostring(value)))
+            end
+        end
+
+        if #entries > 0 then
+            message = string.format("%s [%s]", message, table.concat(entries, ", "))
+        end
+    end
+
+    warn(message)
 end
 
 local function clearRateLimitState(player)
@@ -976,7 +992,7 @@ Remotes.SkillRequest.OnServerEvent:Connect(function(player, payload)
     if not success then
         local code = detail and detail.code
         if code ~= "cooldown" and code ~= "insufficient_mana" then
-            logInvalidRequest(player, "SkillRequest", message or "falha ao executar habilidade")
+            logInvalidRequest(player, "SkillRequest", message or "falha ao executar habilidade", detail)
         end
     end
 end)
