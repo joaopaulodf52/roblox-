@@ -1,0 +1,33 @@
+{
+  "className": "Model",
+  "Name": "FrozenTundra",
+  "NeedsPivotMigration": false,
+  "SnowField": {
+    "className": "Part",
+    "Name": "SnowField",
+    "Anchored": true,
+    "Size": [220, 2, 220],
+    "Position": [-110, -1, -130]
+  },
+  "EncampmentDrift": {
+    "className": "Part",
+    "Name": "EncampmentDrift",
+    "Anchored": true,
+    "Size": [48, 2, 48],
+    "Position": [-80, 5, -120]
+  },
+  "GlacierShelf": {
+    "className": "Part",
+    "Name": "GlacierShelf",
+    "Anchored": true,
+    "Size": [60, 4, 60],
+    "Position": [-132, 12, -86]
+  },
+  "RidgePlateau": {
+    "className": "Part",
+    "Name": "RidgePlateau",
+    "Anchored": true,
+    "Size": [40, 2, 40],
+    "Position": [-98, 19, -164]
+  }
+}

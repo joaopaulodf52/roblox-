@@ -1,0 +1,33 @@
+{
+  "className": "Model",
+  "Name": "DesertOutpost",
+  "NeedsPivotMigration": false,
+  "SandFloor": {
+    "className": "Part",
+    "Name": "SandFloor",
+    "Anchored": true,
+    "Size": [200, 2, 200],
+    "Position": [64, -1, -32]
+  },
+  "CampDune": {
+    "className": "Part",
+    "Name": "CampDune",
+    "Anchored": true,
+    "Size": [36, 2, 36],
+    "Position": [64, 3, -28]
+  },
+  "DuneRidge": {
+    "className": "Part",
+    "Name": "DuneRidge",
+    "Anchored": true,
+    "Size": [64, 8, 24],
+    "Position": [32, 3, -72]
+  },
+  "WatchtowerPlatform": {
+    "className": "Part",
+    "Name": "WatchtowerPlatform",
+    "Anchored": true,
+    "Size": [24, 2, 24],
+    "Position": [92, 11, 14]
+  }
+}
