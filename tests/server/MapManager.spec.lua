@@ -5,11 +5,22 @@ return function()
 
     local MapManager = require(ServerScriptService:WaitForChild("Modules"):WaitForChild("MapManager"))
     local TestPlayers = require(script.Parent.Parent.utils.TestPlayers)
+    local MapConfig = require(ReplicatedStorage:WaitForChild("MapConfig"))
+
+    local mapAssetNames = {}
+    for _, config in pairs(MapConfig) do
+        if type(config) == "table" then
+            local assetName = config.assetName
+            if type(assetName) == "string" then
+                mapAssetNames[assetName] = true
+            end
+        end
+    end
 
     local function destroyMapInstances()
         for _, instance in ipairs(Workspace:GetChildren()) do
             if instance:IsA("Model") then
-                if instance.Name == "StarterVillage" or instance.Name == "CrystalCavern" then
+                if mapAssetNames[instance.Name] then
                     instance:Destroy()
                 end
             end
@@ -50,6 +61,13 @@ return function()
             expect(MapManager:GetCurrentMapId()).to.equal("crystal_cavern")
         end)
 
+        it("loads desert maps when requested", function()
+            local desertModel = MapManager:Load("desert_outpost")
+            expect(desertModel.Parent).to.equal(Workspace)
+            expect(desertModel.Name).to.equal("DesertOutpost")
+            expect(MapManager:GetCurrentMapId()).to.equal("desert_outpost")
+        end)
+
         it("spawns players at the configured positions", function()
             local spawnCFrame = MapManager:GetSpawnCFrame("starter_village", "blacksmith")
             MapManager:SpawnPlayer(player, "starter_village", "blacksmith")
@@ -67,6 +85,30 @@ return function()
 
             expect(root.CFrame).to.equal(spawnCFrame)
             expect(MapManager:GetPlayerMap(player)).to.equal("starter_village")
+        end)
+
+        it("spawns players at frozen tundra spawns", function()
+            local spawnCFrame = MapManager:GetSpawnCFrame("frozen_tundra", "glacier")
+            MapManager:SpawnPlayer(player, "frozen_tundra", "glacier")
+
+            local character = Instance.new("Model")
+            character.Name = player.Name .. "Character"
+            character.Parent = Workspace
+
+            local root = Instance.new("Part")
+            root.Name = "HumanoidRootPart"
+            root.Parent = character
+
+            player.Character = character
+            task.wait()
+
+            expect(root.CFrame).to.equal(spawnCFrame)
+            expect(MapManager:GetPlayerMap(player)).to.equal("frozen_tundra")
+
+            local currentMap = MapManager:GetCurrentMap()
+            expect(currentMap).to.be.ok()
+            expect(currentMap.Name).to.equal("FrozenTundra")
+            expect(currentMap.Parent).to.equal(Workspace)
         end)
     end)
 end
